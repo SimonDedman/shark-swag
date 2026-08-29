@@ -3,6 +3,7 @@ import json
 import pytest
 
 import intake_apply
+import intake_queue
 import intake_sheet
 
 
@@ -144,3 +145,30 @@ def test_validate_accepts_an_in_range_image_pick(workbook):
     rows[0]["Image pick"] = "1"
     queue = {"q0001": {"candidates": [{"url": "https://x/0.jpg"}, {"url": "https://x/1.jpg"}]}}
     assert intake_apply.validate(rows, queue) == []
+
+
+# --- Task 11 fix (post-review): the final queue rewrite must not delete a
+# submission the daemon staged in after the workbook was generated. ---
+
+def test_a_submission_staged_after_the_workbook_was_written_is_not_deleted(tmp_path, workbook):
+    # Two rows go into the workbook, as of the moment it was generated:
+    # q0001 will be accepted, q0002 will be held.
+    path = workbook([sheet_row(), sheet_row(queue_id="q0002")], ["ACCEPT", "HOLD"],
+                    ["Bamboo socks.", ""])
+    rows = intake_apply.read_workbook(path)
+    accepted = [(rows[0]["Queue id"], "e99")]
+    rejected = []
+
+    # Sometime between the workbook being generated and this run applying it,
+    # the intake daemon staged a third submission, q0003, straight into
+    # queue.json. It was never in the workbook and is neither accepted nor
+    # rejected by this run.
+    queue_path = tmp_path / "queue.json"
+    intake_queue.save_queue(
+        [{"queue_id": "q0001"}, {"queue_id": "q0002"}, {"queue_id": "q0003"}],
+        path=queue_path)
+
+    intake_apply._finalize_queue(accepted, rejected, queue_path=queue_path)
+
+    survivors = {r["queue_id"] for r in intake_queue.load_queue(path=queue_path)}
+    assert survivors == {"q0002", "q0003"}

@@ -12,6 +12,7 @@ from pathlib import Path
 import openpyxl
 
 import entries
+import intake_classify
 import intake_queue
 import picks as picks_mod
 from intake_sheet import COLS as CONTACT_SHEET_COLS
@@ -53,7 +54,6 @@ def validate(rows, queue=None):
                 errors.append(f"{qid}: {field} is empty on an ACCEPT row")
         section, sub = str(row.get("Section", "")), str(row.get("Subsection", ""))
         if section and sub:
-            import intake_classify
             valid = intake_classify.valid_subs(section)
             if sub not in valid:
                 errors.append(
@@ -120,6 +120,23 @@ def _picked_specs(row, queue_row):
     return specs
 
 
+def _finalize_queue(accepted, rejected, queue_path=None):
+    """Drop only the rows this run actually decided on: an ACCEPT that was
+    applied, or a REJECT that was recorded. Everything else in queue.json
+    survives untouched, including a submission the intake daemon staged in
+    while this workbook was being filled in: a row's mere absence from the
+    workbook is not a decision about it, so it must not be deleted.
+
+    `queue_path` lets a caller (a test) point this at a temp file instead of
+    the real intake/queue.json; production calls leave it as None and get
+    intake_queue's own default.
+    """
+    kwargs = {} if queue_path is None else {"path": queue_path}
+    processed = {qid for qid, _entry_id in accepted} | set(rejected)
+    rows = intake_queue.load_queue(**kwargs)
+    intake_queue.save_queue([r for r in rows if r["queue_id"] not in processed], **kwargs)
+
+
 def main(path=None, rebuild=True):
     path = Path(path) if path else newest_workbook()
     rows = read_workbook(path)
@@ -152,8 +169,7 @@ def main(path=None, rebuild=True):
 
     entries.save_items(data)
     picks_mod.save_picks(all_picks)
-    intake_queue.save_queue([r for r in intake_queue.load_queue()
-                             if r["queue_id"] in held])
+    _finalize_queue(accepted, rejected)
 
     for _qid, entry_id in accepted:
         written, failures = picks_mod.render(entry_id, all_picks[entry_id]["specs"])
