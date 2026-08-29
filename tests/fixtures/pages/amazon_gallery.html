@@ -1,0 +1,23 @@
+<html><head><title>Amazon.com: Test product</title></head>
+<body>
+<!-- The product's own zoomable image block: data-a-dynamic-image on the
+     canonical host, one entry per photo. -->
+<div id="landingImage" data-a-image-name="landingImage" class="a-dynamic-image media-block-image-tag"
+     data-a-dynamic-image="{&quot;https://m.media-amazon.com/images/I/AAAAAAAAAA1._AC_SY355_.jpg&quot;:[355,355]}">
+</div>
+<div data-a-image-name="mbAltImage" class="a-dynamic-image media-block-image-tag"
+     data-a-dynamic-image="{&quot;https://m.media-amazon.com/images/I/AAAAAAAAAA2._AC_SY355_.jpg&quot;:[355,355]}">
+</div>
+<!-- "Customers also bought" strip: same attribute, but the older host, and
+     never inside the image-block script below. Must NOT count as gallery. -->
+<div class="p13n-sc-dynamic-image p13n-product-image"
+     data-a-dynamic-image="{&quot;https://images-na.ssl-images-amazon.com/images/I/BBBBBBBBBB1._AC_UL116_SR116,116_.jpg&quot;:[116,116]}">
+</div>
+<script>
+P.when('A').register("ImageBlockATF", function(A){
+    var obj = jQuery.parseJSON('{"colorImages":{"initial":[{"hiRes":"https://m.media-amazon.com/images/I/AAAAAAAAAA1._AC_SL1500_.jpg","thumb":"https://m.media-amazon.com/images/I/AAAAAAAAAA3._AC_US40_.jpg","variant":"MAIN"}]}}');
+    data["colorImages"] = obj.colorImages;
+});
+P.when('A').register("SomeOtherWidget", function(A){ /* unrelated */ });
+</script>
+</body></html>

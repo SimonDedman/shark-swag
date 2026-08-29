@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Build a ranked candidate pool per entry, download it, and lay out contact sheets."""
-import json, re, sys
+import html, json, re, sys
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import urlsplit
 
 from PIL import Image, ImageDraw, ImageFont
 sys.path.insert(0, "/media/simon/data/Projects/shark-swag")
+import harvest
 from imgproc import prepare, download, load, autocrop
 from paths import POOL_DIR, SHEETS, CANDIDATES, EXTRAS, POOL_JSON, ROOT
 from entries import iter_entries
@@ -16,15 +18,69 @@ for p in (POOL_DIR, SHEETS):
 BAD = re.compile(r"\.svg($|\?)|/sash/|kindle|QR-store|books-voyager|nav[-_]|/G/01/|"
                  r"transparent-pixel|grey-pixel|fls-na|frontend-static|heart-outline|"
                  r"cover\.\d+\.\d+x\d+|_CB\d|prime|smile|associates", re.I)
-AMZ = re.compile(r"(https://m\.media-amazon\.com/images/I/[A-Za-z0-9+%\-]+)\.[^/]*\.(jpg|png|webp)", re.I)
+# Amazon serves the same photograph from two hosts (m.media-amazon.com, and
+# the older images-na.ssl-images-amazon.com used by recommendation widgets),
+# each at any of a long tail of size-suffixed names
+# (._AC_UL165_SR165,165_.jpg, ._AC_US40_.jpg, .__AC_SR166,182___.jpg,
+# ._AC_SY300_SX300_QL70_FMwebp_.jpg, ...). All of it reduces to one full-size
+# id on the canonical host.
+AMZ = re.compile(
+    r"https://(?:m\.media-amazon\.com|images-na\.ssl-images-amazon\.com)"
+    r"/images/I/([A-Za-z0-9+%\-]+)\.[^/]*\.(?:jpg|png|webp)", re.I)
 
 
 def clean(url):
-    """Normalise Amazon size-suffixed URLs up to full resolution."""
-    m = AMZ.match(url)
+    """Normalise both Amazon image hosts and every size suffix up to one
+    canonical full-resolution URL, so the same photograph at eight sizes (or
+    on either host) is recognisably the same candidate."""
+    m = AMZ.match(url or "")
     if m:
-        return f"{m.group(1)}.jpg"
+        return f"https://m.media-amazon.com/images/I/{m.group(1)}.jpg"
     return url
+
+
+def amazon_image_id(url):
+    """The Amazon image id inside an already-cleaned URL, or None."""
+    m = re.match(r"^https://m\.media-amazon\.com/images/I/([A-Za-z0-9+%\-]+)\.jpg$",
+                 url or "", re.I)
+    return m.group(1) if m else None
+
+
+# Ids that appear in these two places are the product's OWN photos: the
+# zoomable main/alt images (data-a-dynamic-image, always on m.media-amazon.com
+# for the gallery; the recommendation strip's p13n widgets use the other host)
+# and the colour-variant gallery JSON a script tag hands to the image-block
+# widget (ImageBlockATF / colorImages). Restricting to m.media-amazon.com is
+# what keeps this from also picking up "customers also bought" thumbnails,
+# which are verified (2026-08-29, cached B07MXKZJDP page) to only ever cite
+# the other host.
+_GALLERY_ID = re.compile(r"https://m\.media-amazon\.com/images/I/([A-Za-z0-9+%\-]+)\.", re.I)
+
+
+def amazon_gallery_ids(url):
+    """Image ids in this Amazon product page's own image block, so a
+    candidate proven to be the item's own photo can be ranked ahead of a
+    same-scored recommendation-strip thumbnail. Returns an empty set for a
+    non-Amazon URL, or when the page cannot be read (never raises: a missing
+    gallery is a reason to fall back to the ordinary score, not to crash the
+    sheet build)."""
+    if not url or "amazon." not in urlsplit(url).netloc.lower():
+        return set()
+    try:
+        http_status, text, _final, _note = harvest.fetch_full(url)
+    except Exception:
+        return set()
+    if http_status != 200 or not text:
+        return set()
+    ids = set()
+    for m in re.finditer(r'data-a-dynamic-image="([^"]*)"', text):
+        ids.update(_GALLERY_ID.findall(html.unescape(m.group(1))))
+    idx = text.find("ImageBlockATF")
+    if idx != -1:
+        end = text.find("P.when(", idx + len("ImageBlockATF"))
+        chunk = text[idx:end if end != -1 else idx + 40000]
+        ids.update(_GALLERY_ID.findall(chunk))
+    return ids
 
 
 def score(c, entry_words):

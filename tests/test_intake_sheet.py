@@ -2,6 +2,7 @@ import openpyxl
 import pytest
 
 import intake_sheet
+import pool
 
 
 ROW = dict(queue_id="q0001", message_id="m1", received="2026-08-28T09:14:02-07:00",
@@ -134,6 +135,89 @@ def test_ranking_is_stable_for_equally_scored_candidates():
 
 def test_a_row_with_no_candidates_ranks_to_nothing():
     assert intake_sheet.ranked_candidates(dict(ROW, candidates=[])) == []
+
+
+# --- A real Amazon submission (https://www.amazon.com/dp/B07MXKZJDP) came
+# back with 93 candidates that were almost all the same handful of photos
+# repeated across two hosts and a dozen sizes, plus a "customers also
+# bought" strip of other products' thumbnails outranking the item's own
+# picture by pool.score alone. ---
+
+AMZ_ROW = dict(ROW, url="https://www.amazon.com/dp/B07MXKZJDP", title="Shark coin pouch")
+
+
+def test_amazon_candidates_are_deduped_by_image_id_across_both_hosts(monkeypatch):
+    """The same photograph, at both Amazon image hosts and several size
+    suffixes, must occupy exactly one cell."""
+    monkeypatch.setattr(pool, "amazon_gallery_ids", lambda url: set())
+    cands = [
+        dict(url="https://m.media-amazon.com/images/I/61WeTCSYyoL._AC_SL1500_.jpg",
+             title="", src="img"),
+        dict(url="https://m.media-amazon.com/images/I/61WeTCSYyoL._AC_SY355_.jpg",
+             title="", src="img"),
+        dict(url="https://images-na.ssl-images-amazon.com/images/I/"
+                 "61WeTCSYyoL._AC_UL165_SR165,165_.jpg", title="", src="img"),
+        dict(url="https://m.media-amazon.com/images/I/71ZNXxkkJPL._AC_SX679_.jpg",
+             title="", src="img"),
+    ]
+    ranked = intake_sheet.ranked_candidates(dict(AMZ_ROW, candidates=cands))
+    assert len(ranked) == 2
+    assert {c["url"] for c in ranked} == {
+        "https://m.media-amazon.com/images/I/61WeTCSYyoL.jpg",
+        "https://m.media-amazon.com/images/I/71ZNXxkkJPL.jpg",
+    }
+
+
+def test_amazon_candidates_normalise_every_documented_suffix_shape(monkeypatch):
+    monkeypatch.setattr(pool, "amazon_gallery_ids", lambda url: set())
+    cands = [
+        dict(url="https://images-na.ssl-images-amazon.com/images/I/"
+                 "XID1._AC_UL165_SR165,165_.jpg", title="", src="img"),
+        dict(url="https://m.media-amazon.com/images/I/XID2._AC_US40_.jpg",
+             title="", src="img"),
+        dict(url="https://m.media-amazon.com/images/I/XID3.__AC_SR166,182___.jpg",
+             title="", src="img"),
+        dict(url="https://m.media-amazon.com/images/I/"
+                 "XID4._AC_SY300_SX300_QL70_FMwebp_.jpg", title="", src="img"),
+    ]
+    ranked = intake_sheet.ranked_candidates(dict(AMZ_ROW, candidates=cands))
+    assert {c["url"] for c in ranked} == {
+        f"https://m.media-amazon.com/images/I/XID{n}.jpg" for n in range(1, 5)
+    }
+
+
+def test_gallery_ids_are_ranked_ahead_of_a_higher_scored_recommendation(monkeypatch):
+    """The item's own photo (low pool.score, since it carries no matching
+    title words and no size hint) must still beat a recommendation-strip
+    thumbnail that happens to score higher on those grounds alone."""
+    monkeypatch.setattr(pool, "amazon_gallery_ids",
+                        lambda url: {"OWNPHOTO"} if "amazon" in url else set())
+    cands = [
+        dict(url="https://images-na.ssl-images-amazon.com/images/I/"
+                 "OTHERPRODUCT._AC_UL165_SR165,165_.jpg",
+             title="shark coin pouch large 1200x", src="img"),
+        dict(url="https://m.media-amazon.com/images/I/OWNPHOTO._AC_SY355_.jpg",
+             title="", src="img"),
+    ]
+    ranked = intake_sheet.ranked_candidates(dict(AMZ_ROW, candidates=cands))
+    assert pool.amazon_image_id(ranked[0]["url"]) == "OWNPHOTO"
+
+
+def test_gallery_bonus_does_not_apply_off_amazon(monkeypatch):
+    """A non-Amazon row never calls out to amazon_gallery_ids's network/cache
+    path at all, so ranking for every other shop is unaffected."""
+    calls = []
+
+    def fake_gallery_ids(url):
+        calls.append(url)
+        return set()
+    monkeypatch.setattr(pool, "amazon_gallery_ids", fake_gallery_ids)
+    intake_sheet.ranked_candidates(dict(ROW, candidates=CANDS))
+    assert calls == [ROW["url"]]  # called, but correctly returns nothing for a non-Amazon URL
+
+
+def test_amazon_gallery_ids_returns_nothing_for_a_non_amazon_url():
+    assert pool.amazon_gallery_ids("https://shop.com/products/socks") == set()
 
 
 # --- Important 10: the index-to-candidate contract was asserted nowhere. The

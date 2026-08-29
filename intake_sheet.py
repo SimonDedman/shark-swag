@@ -54,25 +54,57 @@ EVIDENCE_FILL = PatternFill("solid", fgColor="F2F2F2")
 CELL, HDR, COLS = 190, 30, 12
 
 
+GALLERY_BONUS = 1000  # far above pool.score's own point scale
+
+
 def ranked_candidates(row):
     """This row's candidates in the order the contact sheet lays them out.
 
     The sheet's numbers are what Simon types into Image pick, so exactly one
     function may decide that order: intake_apply resolves a picked index
     through this same call. Ranking is pool.score, against the words of the
-    row's own title, the way pool.build_pools derives them. Python's sort is
-    stable, so equally scored candidates keep harvest order.
+    row's own title, the way pool.build_pools derives them - with two
+    corrections pool.score alone does not make.
+
+    First, every candidate URL is run through pool.clean() and deduplicated
+    by the Amazon image id it resolves to (falling back to the bare URL for
+    anything that is not an Amazon image): an Amazon product page repeats the
+    same handful of photographs at both its image hosts and a dozen size
+    suffixes, so without this a 93-candidate page can be almost entirely one
+    picture shown ninety different ways.
+
+    Second, a candidate whose id appears in the product's own image block
+    (pool.amazon_gallery_ids) gets a bonus large enough to always outrank one
+    that does not, so the item's real photos sort ahead of a same-scored
+    thumbnail from a "customers also bought" strip rather than being
+    interleaved with it by chance.
+
+    Python's sort is stable, so candidates left equally ranked after both
+    corrections keep harvest order.
     """
     cands = row.get("candidates") or []
     words = set(re.findall(r"[a-z]{4,}", (row.get("title") or "").lower()))
+    gallery_ids = pool.amazon_gallery_ids(row.get("url", ""))
+
+    deduped, seen = [], set()
+    for c in cands:
+        url = pool.clean(c.get("url", ""))
+        key = pool.amazon_image_id(url) or url.split("?")[0]
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(dict(c, url=url))
 
     def rank(c):
         # A hand-edited or older queue row may be missing a key pool.score
         # indexes directly; scoring it low is right, crashing the apply is not.
-        return pool.score(dict(url=c.get("url", ""), title=c.get("title", ""),
-                               src=c.get("src", "")), words)
+        score = pool.score(dict(url=c.get("url", ""), title=c.get("title", ""),
+                                src=c.get("src", "")), words)
+        if pool.amazon_image_id(c.get("url", "")) in gallery_ids:
+            score += GALLERY_BONUS
+        return score
 
-    return sorted(cands, key=rank, reverse=True)
+    return sorted(deduped, key=rank, reverse=True)
 
 
 def contact_sheet(row):

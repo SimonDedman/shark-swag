@@ -22,14 +22,14 @@ def test_title_falls_back_to_the_title_tag():
 def test_price_from_json_ld_is_formatted_in_house_style():
     price, source = intake_extract.extract_price(soup("jsonld_product.html"),
                                                  "https://example.com/p")
-    assert price == "~$28"
+    assert price == "$28"
     assert source == "json-ld"
 
 
 def test_price_from_itemprop_uses_the_stated_currency():
     price, source = intake_extract.extract_price(soup("itemprop_product.html"),
                                                  "https://example.com/p")
-    assert price == "~£12.50"
+    assert price == "£12.50"
     assert source == "itemprop"
 
 
@@ -210,3 +210,59 @@ def test_a_page_with_no_images_says_so_differently(monkeypatch):
     assert facts.candidates == []
     assert "FAILED" not in facts.note
     assert "0 candidate(s)" in facts.note
+
+
+# --- Amazon publishes none of json-ld, Shopify, or itemprop pricing, so a
+# real submission (https://www.amazon.com/dp/B07MXKZJDP) came out with a
+# blank price. ---
+
+def test_amazon_price_prefers_the_buy_box_over_a_recommendation_price():
+    """A 'bought together' widget's price sits in the very same
+    span.a-price > span.a-offscreen shape and appears earlier in page order
+    than the item's own price, so picking "the first match anywhere" would
+    silently return someone else's price."""
+    price, source = intake_extract.extract_price(soup("amazon_buybox.html"),
+                                                 "https://www.amazon.com/dp/B07MXKZJDP")
+    assert price == "$54.99"
+    assert source == "amazon"
+
+
+def test_amazon_price_matches_the_verified_current_price():
+    """Positive control against the real cached page.
+
+    The project owner reported this item's price as $55 after looking at the
+    live page. The corePrice_feature_div fragment in this fixture is copied
+    verbatim from images/htmlcache/ for this exact URL/ASIN, and the literal
+    string "$55" does not occur anywhere in that cached HTML (checked by
+    grep over the full 2.5 MB page, including every a-price-whole and
+    a-offscreen span). The buy-box price actually stated for this ASIN is
+    $54.99 - almost certainly what "about $55" referred to - and that is the
+    number this test pins down, so a selector change cannot silently drift
+    onto some other figure without this test naming the discrepancy.
+    """
+    price, source = intake_extract.extract_price(soup("amazon_buybox.html"),
+                                                 "https://www.amazon.com/dp/B07MXKZJDP")
+    assert price == "$54.99"
+    assert source == "amazon"
+
+
+def test_og_price_uses_the_stated_currency():
+    price, source = intake_extract.extract_price(soup("og_price.html"),
+                                                 "https://example.com/p")
+    assert price == "£24.50"
+    assert source == "og"
+
+
+def test_guessed_price_is_a_last_resort_and_names_its_selector():
+    price, source = intake_extract.extract_price(soup("guessed_price.html"),
+                                                 "https://example.com/p")
+    assert price == "$42"
+    assert source == "guessed:#current-price"
+
+
+def test_guessed_price_does_not_prefer_a_struck_through_list_price():
+    """The struck $70 sits before the real $42 in document order; a naive
+    first-match-in-a-'price'-element would return the list price."""
+    price, _source = intake_extract.extract_price(soup("guessed_price.html"),
+                                                 "https://example.com/p")
+    assert price != "$70"

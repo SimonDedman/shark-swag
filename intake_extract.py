@@ -103,6 +103,14 @@ def extract_title(soup):
 
 
 def _format_price(amount, currency):
+    """House price style: a bare figure with the right symbol, e.g. $28, £12.50.
+
+    A price read off a page at fetch time is a direct quotation, not an
+    estimate, so it carries no "~". (Prices hand-researched into items.json
+    earlier keep their "~": those really were approximations, converted
+    between currencies or recalled from memory. This function only ever
+    formats a number the scraper just read, so it never needs one.)
+    """
     try:
         value = float(str(amount).replace(",", ""))
     except (TypeError, ValueError):
@@ -111,11 +119,116 @@ def _format_price(amount, currency):
     if text.endswith(".00"):
         text = text[:-3]
     sym = SYMBOL.get((currency or "USD").upper(), (currency or "").upper() + " ")
-    return f"~{sym}{text}"
+    return f"{sym}{text}"
+
+
+# Amazon's own currency symbol -> the ISO code _format_price expects, for
+# parsing the already-formatted string a page hands back (e.g. "$14.99")
+# rather than a separate amount/currency pair.
+_SYMBOL_TO_CURRENCY = {"$": "USD", "£": "GBP", "€": "EUR"}
+_FORMATTED_PRICE = re.compile(r"([$£€])\s?([\d,]+(?:\.\d+)?)")
+
+
+def _parse_formatted_price(text):
+    """'$14.99' -> ('14.99', 'USD'), or None if nothing price-shaped is there."""
+    m = _FORMATTED_PRICE.search(text or "")
+    if not m:
+        return None
+    symbol, amount = m.groups()
+    return amount.replace(",", ""), _SYMBOL_TO_CURRENCY.get(symbol, "USD")
+
+
+# Containers Amazon uses for the actual buy-box price, tried in this order so
+# a recommendation strip's or "frequently bought together" price (which also
+# sits in a span.a-price > span.a-offscreen, just elsewhere on the page)
+# cannot outrank the price for the ASIN in the URL. Amazon puts the buy-box
+# price first in page order regardless, so falling through to "the first
+# match anywhere" when none of these ids are present still lands correctly.
+_AMAZON_BUYBOX_IDS = (re.compile(r"^corePrice"), re.compile(r"^apex_desktop"))
+
+
+def _amazon_price(soup):
+    for pattern in _AMAZON_BUYBOX_IDS:
+        container = soup.find(id=pattern)
+        if container:
+            span = container.select_one("span.a-price > span.a-offscreen")
+            if span:
+                parsed = _parse_formatted_price(span.get_text())
+                if parsed:
+                    return parsed
+    span = soup.select_one("span.a-price > span.a-offscreen")
+    if span:
+        return _parse_formatted_price(span.get_text())
+    return None
+
+
+def _og_price(soup):
+    meta = soup.find("meta", attrs={"property": "product:price:amount"})
+    if meta and meta.get("content"):
+        cur = soup.find("meta", attrs={"property": "product:price:currency"})
+        return meta["content"], (cur.get("content") if cur else None)
+    return None
+
+
+# A "was" / list price struck through in favour of a current one. Skipped
+# entirely by the guessed fallback rather than risked, since telling a sale
+# price from its list price by class name alone is exactly the kind of guess
+# this fallback's provenance warns the reader about.
+_STRIKE_HINT = re.compile(
+    r"strike|was-?price|list-?price|compare-?at|original-?price|old-?price", re.I)
+_PRICE_HINT = re.compile("price", re.I)
+
+
+def _has_strike_signal(el):
+    node = el
+    while node is not None and hasattr(node, "get"):
+        if getattr(node, "name", None) in ("del", "s", "strike"):
+            return True
+        haystack = " ".join(node.get("class") or []) + " " + (node.get("id") or "")
+        if _STRIKE_HINT.search(haystack):
+            return True
+        if "line-through" in (node.get("style") or "").lower():
+            return True
+        node = node.parent
+    return False
+
+
+def _guessed_price(soup):
+    """Last resort: a currency-shaped string inside a "price"-ish element.
+
+    This WILL sometimes pick the wrong figure on a page this project has
+    never seen before, which is exactly why its provenance names the
+    selector rather than claiming a source, so a reader can tell a quoted
+    price from an inferred one. Only leaf elements are considered, so a
+    wrapping container that holds both a struck list price and the real one
+    is read as its two separate spans rather than one glued string.
+    """
+    for el in soup.find_all(True):
+        if el.find(True):
+            continue  # not a leaf; its text would blend sibling prices together
+        haystack = " ".join(el.get("class") or []) + " " + (el.get("id") or "")
+        if not _PRICE_HINT.search(haystack):
+            continue
+        if _has_strike_signal(el):
+            continue
+        parsed = _parse_formatted_price(el.get_text())
+        if not parsed:
+            continue
+        eid = el.get("id")
+        cls = el.get("class") or []
+        selector = f"#{eid}" if eid else (f".{cls[0]}" if cls else el.name)
+        return parsed, selector
+    return None
 
 
 def extract_price(soup, url):
-    """Returns (price, source). Source is one of json-ld, shopify, itemprop, ''."""
+    """Returns (price, source).
+
+    Source is one of json-ld, shopify, itemprop, amazon, og, guessed:<selector>,
+    or ''. Tried in that order: the first four are the page stating its own
+    price in a structured, unambiguous place; the last is a plain-text guess
+    kept honest by naming exactly what it read.
+    """
     for node in _jsonld(soup):
         offers = node.get("offers")
         if isinstance(offers, list):
@@ -139,6 +252,26 @@ def extract_price(soup, url):
         p = _format_price(meta["content"], cur.get("content") if cur else None)
         if p:
             return p, "itemprop"
+
+    parsed = _amazon_price(soup)
+    if parsed:
+        p = _format_price(*parsed)
+        if p:
+            return p, "amazon"
+
+    parsed = _og_price(soup)
+    if parsed:
+        p = _format_price(*parsed)
+        if p:
+            return p, "og"
+
+    guessed = _guessed_price(soup)
+    if guessed:
+        (amount, currency), selector = guessed
+        p = _format_price(amount, currency)
+        if p:
+            return p, f"guessed:{selector}"
+
     return "", ""
 
 
