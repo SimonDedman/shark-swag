@@ -17,6 +17,10 @@ from openpyxl.utils import get_column_letter
 from PIL import Image, ImageDraw, ImageFont
 
 import intake_queue
+# The ranking below needs pool.score, but importing this also inherits pool.py's
+# import-time side effects: it inserts the project root onto sys.path and
+# creates images/pool and images/sheets if they are missing. Harmless, but
+# anything that imports this module (intake_apply included) inherits it too.
 import pool
 from imgproc import autocrop, download, load
 from paths import HEARTBEAT, INTAKE, SHEETS

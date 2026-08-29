@@ -142,19 +142,75 @@ def extract_price(soup, url):
     return "", ""
 
 
-def _sentence_shaped(candidate):
-    """Does this run of text span the start of a real sentence?
+# The closed-class scaffolding of an English clause: prepositions, articles,
+# conjunctions, copulas. Common to virtually every real sentence, and, on
+# their own, incapable of asserting anything.
+_FUNCTION_WORDS = {
+    "a", "an", "the", "of", "to", "in", "on", "for", "from", "by", "with",
+    "at", "as", "is", "are", "was", "were", "be", "been", "being", "and",
+    "or", "but", "if", "so", "no", "not", "all", "some", "any", "each",
+    "every", "this", "that", "these", "those", "it", "its", "per", "over",
+    "under", "into", "onto", "upon", "up", "out",
+}
 
-    A capital letter at the start, or immediately after whitespace, is the
-    cheapest available evidence that the run contains prose rather than a
-    stretch of lowercase navigation, slugs, and facet labels swept up because
-    a minified page offered no sentence boundary to stop at. It is weak
-    evidence, which is why the length cap does the heavier work.
+_WORD = re.compile(r"[A-Za-z][\w'-]*")
+
+
+def _glued_content_before_keyword(prefix):
+    """Two words in a row that are neither function words, sitting right
+    before the keyword, is the fingerprint of an unrelated fragment glued on
+    ahead of the donation clause by tag-stripping: "free shipping" ahead of
+    "proceeds ...". A single content word before the keyword, or one braided
+    with real function words ("ten per cent of proceeds..."), reads as the
+    ordinary run-up to a sentence and is let through.
     """
-    for i, ch in enumerate(candidate):
-        if ch.isupper() and (i == 0 or candidate[i - 1].isspace()):
+    prev_content = False
+    for word in _WORD.findall(prefix):
+        content = word.lower() not in _FUNCTION_WORDS
+        if content and prev_content:
             return True
+        prev_content = content
     return False
+
+
+def _title_case_fragment_count(candidate):
+    """How many separate runs of consecutive Title-Case words the candidate
+    holds. A nav menu glued onto a keyword by tag-stripping reads as several
+    short capitalised fragments with nothing but whitespace between them
+    ("Shop all Sale Our conservation partners Free UK shipping ..."); a real
+    sentence has at most a capitalised opening word and one proper noun.
+    """
+    runs = 0
+    in_run = False
+    for word in _WORD.findall(candidate):
+        if word[0].isupper():
+            if not in_run:
+                runs += 1
+            in_run = True
+        else:
+            in_run = False
+    return runs
+
+
+def _sentence_shaped(candidate):
+    """Does this run of text hold one real clause, rather than page furniture
+    glued together because a minified page offered no sentence boundary to
+    stop at?
+
+    Two checks, each aimed at a different way tag-stripping glues unrelated
+    text onto the keyword: a run of Title-Case fragments (nav labels, menu
+    items) with no punctuation between them, and a pair of ordinary content
+    words sitting immediately ahead of the keyword with no preposition,
+    article, or conjunction between them and it. Neither check cares whether
+    the candidate is capitalised, so a genuine lowercase sentence ("ten per
+    cent of proceeds go to sharks.") is judged on the same terms as a
+    capitalised one.
+    """
+    if _title_case_fragment_count(candidate) >= 3:
+        return False
+    match = re.search(NGO_KEYWORD, candidate, re.I)
+    prefix = candidate[:match.start()] if match else candidate
+    return not _glued_content_before_keyword(prefix)
 
 
 def extract_ngo(text):

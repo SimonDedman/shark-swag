@@ -72,7 +72,10 @@ and a row that is ACCEPT but no longer queued is the signature of a second run.
    Expect `sharkswag exists, N message(s)`.
 
 3. **Dry-run it against the real folder first.** This reads the mailbox and
-   writes nothing at all: no queue, no ledger, no heartbeat, no log line.
+   writes none of the intake state files: no queue, no ledger, no heartbeat,
+   and no log line. It does still populate the HTML cache
+   (`images/htmlcache/`), since every page fetched successfully is cached
+   there regardless of `--dry-run`.
 
         timeout 60 ~/.venvs/scrape/bin/python intake_watch.py --dry-run
         ls intake/          # no queue.json, no ledger.json

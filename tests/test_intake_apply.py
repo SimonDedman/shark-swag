@@ -332,6 +332,10 @@ def isolated_apply(tmp_path, monkeypatch):
     monkeypatch.setattr(intake_queue, "REJECTED", tmp_path / "rejected.json")
     monkeypatch.setattr(intake_queue, "LEDGER", tmp_path / "ledger.json")
     monkeypatch.setattr(picks_mod, "render", lambda entry_id, specs: ([], []))
+    # _finalize_queue deletes a processed row's contact sheet; point it at
+    # tmp_path too, so a real queue id never causes main() to touch (or
+    # delete from) the project's actual images/sheets directory.
+    monkeypatch.setattr(intake_apply, "SHEETS", tmp_path / "sheets")
     return tmp_path
 
 
@@ -412,3 +416,69 @@ def test_main_applies_nothing_when_any_row_fails_validation(isolated_apply, work
         intake_apply.main(path=path, rebuild=False)
     assert entries.load_items() == before
     assert len(intake_queue.load_queue()) == 2
+
+
+# --- Residual fix: a blank Queue id was refused with the "already applied"
+# message, which sends the reader hunting for the wrong problem. ---
+
+def test_validate_gives_a_hand_typed_row_its_own_message(workbook):
+    """A row typed straight into the workbook carries no Queue id at all,
+    which is a different problem from a row whose id fell out of the queue
+    because the workbook was already applied, and needs its own words."""
+    path = workbook([sheet_row(queue_id="")], ["ACCEPT"], ["Bamboo socks."])
+    rows = intake_apply.read_workbook(path)
+    assert rows[0].get("Queue id") in (None, "")
+    errors = intake_apply.validate(rows, queue={"q0001": sheet_row()})
+    assert errors
+    assert "already been applied" not in errors[0]
+    assert "no Queue id" in errors[0] or "Queue id is blank" in errors[0]
+
+
+# --- Residual fix: next_queue_id hands out ids from the *current* queue, so a
+# processed row's id can be recycled onto a brand-new submission. If the old
+# row's contact sheet is still on disk under that id, write_workbook offers it
+# to the new row, which may have found no images of its own at all. ---
+
+def test_finalize_queue_deletes_the_sheet_for_an_accepted_row(tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_apply, "SHEETS", tmp_path)
+    (tmp_path / "pending_q0001.jpg").write_bytes(b"x")
+    queue_path = tmp_path / "queue.json"
+    intake_queue.save_queue([{"queue_id": "q0001"}], path=queue_path)
+
+    intake_apply._finalize_queue([("q0001", "e99")], [], queue_path=queue_path)
+
+    assert not (tmp_path / "pending_q0001.jpg").exists()
+
+
+def test_finalize_queue_deletes_the_sheet_for_a_rejected_row(tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_apply, "SHEETS", tmp_path)
+    (tmp_path / "pending_q0002.jpg").write_bytes(b"x")
+    queue_path = tmp_path / "queue.json"
+    intake_queue.save_queue([{"queue_id": "q0002"}], path=queue_path)
+
+    intake_apply._finalize_queue([], ["q0002"], queue_path=queue_path)
+
+    assert not (tmp_path / "pending_q0002.jpg").exists()
+
+
+def test_finalize_queue_leaves_a_held_rows_sheet_alone(tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_apply, "SHEETS", tmp_path)
+    (tmp_path / "pending_q0001.jpg").write_bytes(b"x")
+    (tmp_path / "pending_q0003.jpg").write_bytes(b"x")
+    queue_path = tmp_path / "queue.json"
+    intake_queue.save_queue([{"queue_id": "q0001"}, {"queue_id": "q0003"}], path=queue_path)
+
+    # q0003 is held: neither accepted nor rejected, so it stays in the queue
+    # and its sheet must survive.
+    intake_apply._finalize_queue([("q0001", "e99")], [], queue_path=queue_path)
+
+    assert not (tmp_path / "pending_q0001.jpg").exists()
+    assert (tmp_path / "pending_q0003.jpg").exists()
+
+
+def test_finalize_queue_is_not_an_error_when_the_sheet_is_already_gone(tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_apply, "SHEETS", tmp_path)
+    queue_path = tmp_path / "queue.json"
+    intake_queue.save_queue([{"queue_id": "q0001"}], path=queue_path)
+
+    intake_apply._finalize_queue([("q0001", "e99")], [], queue_path=queue_path)  # no raise

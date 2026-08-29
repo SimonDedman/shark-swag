@@ -158,6 +158,28 @@ def test_a_real_sentence_after_a_rejected_one_is_still_found():
         "Ten per cent of every sale is donated to the Shark Trust."
 
 
+# --- Residual fix: a page with no whitespace between distinct nav/list nodes
+# still has no punctuation between them once flattened, so a run of Title-Case
+# fragments passed the old shape test (a bare capital letter) even though it
+# holds no real sentence at all. ---
+
+def test_a_glued_run_of_title_case_nav_fragments_is_not_a_sentence():
+    """Reproduces the residual: a minified page with no whitespace between
+    <nav> items, a promo div, and a shipping bullet, all Title-Case and none
+    of it about where any money goes."""
+    html = ('<nav><a>Shop all</a><a>Sale</a></nav><div>Our conservation partners</div>'
+            '<ul><li>Free UK shipping over fifty pounds</li></ul><p>Printed on demand.</p>')
+    text = BeautifulSoup(html, "lxml").get_text(" ")
+    assert intake_extract.extract_ngo(text) == ""
+
+
+def test_a_genuine_lowercase_sentence_is_captured():
+    """A donation sentence with no capital letters at all is still a sentence;
+    the shape test must not require capitalisation as evidence."""
+    text = "ten per cent of proceeds go to sharks."
+    assert intake_extract.extract_ngo(text) == "ten per cent of proceeds go to sharks."
+
+
 # --- Important 4: a crashed image harvest and a page with no usable images
 # both leave the Contact sheet cell blank, so extract() must not swallow the
 # difference into a field nobody reads. ---

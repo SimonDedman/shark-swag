@@ -17,7 +17,7 @@ import intake_classify
 import intake_queue
 import picks as picks_mod
 from intake_sheet import COLS as CONTACT_SHEET_COLS, ranked_candidates
-from paths import INTAKE, ROOT
+from paths import INTAKE, ROOT, SHEETS
 
 VENV_PYTHON = "/home/simon/.venvs/scrape/bin/python"
 REQUIRED = ["Section", "Subsection", "Item", "Description"]
@@ -72,7 +72,15 @@ def validate(rows, queue=None):
     for row in rows:
         if row["Status"] != "ACCEPT":
             continue
-        qid = row.get("Queue id") or "?"
+        raw_qid = row.get("Queue id")
+        if not raw_qid:
+            errors.append(
+                "?: this row is ACCEPT but its Queue id is blank, so it cannot "
+                "be traced to any submission. That is what a row typed by hand "
+                "into the workbook looks like; give it a real queue id, or add "
+                "it through the intake process instead.")
+            continue
+        qid = raw_qid
         if qid not in queue:
             errors.append(
                 f"{qid}: this row is ACCEPT but no longer in the queue, which is "
@@ -165,11 +173,21 @@ def _finalize_queue(accepted, rejected, queue_path=None):
     `queue_path` lets a caller (a test) point this at a temp file instead of
     the real intake/queue.json; production calls leave it as None and get
     intake_queue's own default.
+
+    Also removes each finalized row's pending contact sheet
+    (images/sheets/pending_<queue_id>.jpg), if one exists. next_queue_id maxes
+    over the current queue only, so once a row leaves it a later submission
+    can be handed the same id back; if that id's old sheet were left behind,
+    write_workbook would link it to the new row and offer a contact sheet
+    showing a different item's images. A held row's sheet is left alone: its
+    id is still live and the sheet still belongs to it.
     """
     kwargs = {} if queue_path is None else {"path": queue_path}
     processed = {qid for qid, _entry_id in accepted} | set(rejected)
     rows = intake_queue.load_queue(**kwargs)
     intake_queue.save_queue([r for r in rows if r["queue_id"] not in processed], **kwargs)
+    for qid in processed:
+        (SHEETS / f"pending_{qid}.jpg").unlink(missing_ok=True)
 
 
 def main(path=None, rebuild=True):
