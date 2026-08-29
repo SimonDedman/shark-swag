@@ -11,10 +11,8 @@ from urllib.parse import urljoin, urlparse
 from curl_cffi import requests as creq
 from bs4 import BeautifulSoup
 
-ROOT = Path("/media/simon/data/Projects/shark-swag")
-CACHE = ROOT / "images" / "htmlcache"
+from paths import ROOT, HTMLCACHE as CACHE, CANDIDATES as OUT, ITEMS
 CACHE.mkdir(parents=True, exist_ok=True)
-OUT = ROOT / "images" / "candidates.json"
 
 IMPERSONATE = "chrome124"
 JUNK = re.compile(r"(logo|icon|favicon|sprite|badge|payment|visa|mastercard|paypal|amex|"
@@ -205,22 +203,10 @@ def harvest(url):
 
 
 def main():
-    data = json.loads((ROOT / "items.json").read_text())
-    entries = []
-    for s in data["sections"]:
-        for sub in s["subsections"]:
-            for it in sub["items"]:
-                entries.append(dict(section=s["number"], sub=sub["name"],
-                                    item=it["item"], link=it["link"]))
-    # the four entries already in the shared doc
-    for item, link in [
-        ("SPHYRNAS — tees, hoodies, hats, accessories", "https://www.sphyrnas.com/products"),
-        ("Sharks Preschool Activity Book", "https://a.co/d/0aaGljoi"),
-        ("Underwater Photography and Editing Ebooks", "https://www.gillianshark.com/ebooks"),
-        ("Colouring & Facts Book (currently only available as PDF)",
-         "https://www.gillianshark.com/colouring-book"),
-    ]:
-        entries.append(dict(section="EXISTING", sub="", item=item, link=link))
+    from entries import iter_entries
+    entries_ = iter_entries()
+    entries = [dict(id=e.id, section=e.section, sub=e.sub, item=e.item, link=e.link)
+               for e in entries_]
 
     results = {}
     urls = {}
