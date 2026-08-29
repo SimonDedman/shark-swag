@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Turn the pending queue into a review workbook, with a contact sheet per item.
 
-House rules: the Info tab is ordered first and says what was already done and
-what the reader must do; every tab has a frozen, bold, autofiltered header row.
-Evidence columns sit to the right of the editable ones, so a guess can always be
-traced to what produced it.
+House rules: the Info tab is ordered first, with a frozen, bold heading, and
+says what was already done and what the reader must do; the Review tab carries
+the frozen, bold, autofiltered header row. Evidence columns sit to the right
+of the editable ones, so a guess can always be traced to what produced it.
 """
 from datetime import datetime
 
@@ -119,10 +119,14 @@ def _info(ws, rows):
         ("3. Fill in Description. This is the only field with no scraped source, and "
          "an accepted row will be refused without it.", False),
         ("4. Correct Section, Subsection, Item, Age, and Approx. price where the "
-         "guess is wrong. Section keyword shows which rule produced the guess.", False),
+         "guess is wrong. Section keyword shows which rule produced the guess. "
+         "Subsection must be one of the names already used in that section of the "
+         "document; intake_apply.py will list the valid names if it does not match.",
+         False),
         ("5. Open the contact sheet linked in the last column and put the index of "
-         "the image you want in Image pick. Several are allowed, comma separated. "
-         "Leave it blank for no image.", False),
+         "the image you want in Image pick. The sheet shows only the first twelve "
+         "candidates, numbered from zero, and only those indices can be chosen. "
+         "Several are allowed, comma separated. Leave it blank for no image.", False),
         ("6. Set Status to ACCEPT, REJECT, or HOLD. Blank counts as HOLD. ACCEPT adds "
          "the entry; REJECT records the link so it is never queued again; HOLD leaves "
          "it for the next workbook.", False),
