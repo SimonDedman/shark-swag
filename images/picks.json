@@ -1,0 +1,594 @@
+{
+ "e01": {
+  "specs": [
+   "P:e01_00"
+  ],
+  "note": ""
+ },
+ "e02": {
+  "specs": [],
+  "note": "PADI Gear storefront is JS-only"
+ },
+ "e03": {
+  "specs": [
+   "P:e03_00"
+  ],
+  "note": "first hit on the shop search; it is the octopus bodysuit, not a shark print"
+ },
+ "e04": {
+  "specs": [
+   "U:https://images.podos.io/t2olir70sekgiwrvh0dwztxvl1ho54rw4oehiobenm7e0nre.jpeg.jpg?w=1110",
+   "P:e04_00",
+   "P:e04_02",
+   "P:e04_11"
+  ],
+  "note": ""
+ },
+ "e05": {
+  "specs": [
+   "P:e05_00",
+   "P:e05_01",
+   "P:e05_03",
+   "P:e05_05"
+  ],
+  "note": ""
+ },
+ "e06": {
+  "specs": [
+   "P:e06_00"
+  ],
+  "note": ""
+ },
+ "e07": {
+  "specs": [
+   "U:https://ih1.redbubble.net/image.6013215274.7262/ssrco,classic_tee,mens_02,101010:01c5ca27c6,front,product_square,x600.u2.jpg",
+   "P:e07_01",
+   "P:e07_05",
+   "P:e07_08"
+  ],
+  "note": ""
+ },
+ "e08": {
+  "specs": [
+   "P:e08_10",
+   "P:e08_09",
+   "P:e08_11",
+   "P:e08_05"
+  ],
+  "note": ""
+ },
+ "e09": {
+  "specs": [
+   "U:https://cdn.shopify.com/s/files/1/0025/9027/7685/files/Sharkflatlaysq-PhotoRoom.jpg"
+  ],
+  "note": ""
+ },
+ "e10": {
+  "specs": [
+   "P:e10_00"
+  ],
+  "note": ""
+ },
+ "e11": {
+  "specs": [
+   "P:e11_00"
+  ],
+  "note": ""
+ },
+ "e12": {
+  "specs": [
+   "P:e12_01"
+  ],
+  "note": ""
+ },
+ "e13": {
+  "specs": [
+   "P:e13_02",
+   "P:e13_04",
+   "P:e13_05",
+   "P:e13_09"
+  ],
+  "note": ""
+ },
+ "e14": {
+  "specs": [],
+  "note": "Wix storefront is JS-only"
+ },
+ "e15": {
+  "specs": [
+   "P:e15_08",
+   "P:e15_05",
+   "P:e15_09",
+   "P:e15_10"
+  ],
+  "note": ""
+ },
+ "e16": {
+  "specs": [
+   "P:e16_00|crop=0,0.44,1,1"
+  ],
+  "note": ""
+ },
+ "e17": {
+  "specs": [
+   "P:e17_00|crop=0,0.44,1,1"
+  ],
+  "note": ""
+ },
+ "e18": {
+  "specs": [
+   "P:e18_00",
+   "P:e18_02",
+   "P:e18_03",
+   "P:e18_08"
+  ],
+  "note": ""
+ },
+ "e19": {
+  "specs": [
+   "P:e19_00"
+  ],
+  "note": ""
+ },
+ "e20": {
+  "specs": [
+   "P:e20_00"
+  ],
+  "note": ""
+ },
+ "e21": {
+  "specs": [
+   "P:e21_00"
+  ],
+  "note": ""
+ },
+ "e22": {
+  "specs": [
+   "P:e22_00"
+  ],
+  "note": ""
+ },
+ "e23": {
+  "specs": [
+   "P:e23_00"
+  ],
+  "note": ""
+ },
+ "e24": {
+  "specs": [
+   "P:e24_00"
+  ],
+  "note": ""
+ },
+ "e25": {
+  "specs": [
+   "U:https://www.lego.com/cdn/cs/set/assets/blt360959af12fb5bfc/31381_Prod_en-gb.png?fit=bounds&width=800&height=800",
+   "U:https://www.lego.com/cdn/cs/set/assets/blt563c6451b3962ef5/5006627.jpg?fit=bounds&width=800&height=800",
+   "U:https://www.lego.com/cdn/cs/set/assets/bltf51319e5e0f94542/21350.png?fit=bounds&width=800&height=800"
+  ],
+  "note": ""
+ },
+ "e26": {
+  "specs": [
+   "P:e26_00"
+  ],
+  "note": ""
+ },
+ "e27": {
+  "specs": [
+   "P:e27_00"
+  ],
+  "note": ""
+ },
+ "e28": {
+  "specs": [
+   "P:e28_00"
+  ],
+  "note": ""
+ },
+ "e29": {
+  "specs": [
+   "P:e29_00"
+  ],
+  "note": ""
+ },
+ "e30": {
+  "specs": [
+   "U:https://m.media-amazon.com/images/P/B001YIT1YI.01._SCLZZZZZZZ_.jpg"
+  ],
+  "note": ""
+ },
+ "e31": {
+  "specs": [
+   "P:e31_00"
+  ],
+  "note": ""
+ },
+ "e32": {
+  "specs": [
+   "P:e32_00"
+  ],
+  "note": ""
+ },
+ "e33": {
+  "specs": [
+   "P:e33_00"
+  ],
+  "note": ""
+ },
+ "e34": {
+  "specs": [
+   "P:e34_01"
+  ],
+  "note": ""
+ },
+ "e35": {
+  "specs": [
+   "U:https://www.abramsbooks.com/cover_images/2/9781419719202_s3.jpg"
+  ],
+  "note": ""
+ },
+ "e36": {
+  "specs": [
+   "P:e36_00"
+  ],
+  "note": ""
+ },
+ "e37": {
+  "specs": [
+   "P:e37_00"
+  ],
+  "note": ""
+ },
+ "e38": {
+  "specs": [
+   "P:e38_00"
+  ],
+  "note": ""
+ },
+ "e39": {
+  "specs": [
+   "U:https://static.wixstatic.com/media/7ab14d_be479428acc64ade8e1d3f7a76cbc4d3~mv2.jpg"
+  ],
+  "note": ""
+ },
+ "e40": {
+  "specs": [
+   "U:https://m.media-amazon.com/images/P/0593685253.01._SCLZZZZZZZ_.jpg"
+  ],
+  "note": ""
+ },
+ "e41": {
+  "specs": [
+   "P:e41_00"
+  ],
+  "note": ""
+ },
+ "e42": {
+  "specs": [
+   "P:e42_02"
+  ],
+  "note": "Amazon /images/P/<isbn> returns the wrong title for this one"
+ },
+ "e43": {
+  "specs": [
+   "P:e43_01"
+  ],
+  "note": ""
+ },
+ "e44": {
+  "specs": [
+   "P:e44_00"
+  ],
+  "note": ""
+ },
+ "e45": {
+  "specs": [
+   "P:e45_00"
+  ],
+  "note": ""
+ },
+ "e46": {
+  "specs": [
+   "P:e46_00"
+  ],
+  "note": ""
+ },
+ "e47": {
+  "specs": [
+   "P:e47_00"
+  ],
+  "note": ""
+ },
+ "e48": {
+  "specs": [
+   "P:e48_00"
+  ],
+  "note": ""
+ },
+ "e49": {
+  "specs": [
+   "P:e49_01"
+  ],
+  "note": ""
+ },
+ "e50": {
+  "specs": [
+   "P:e50_09"
+  ],
+  "note": ""
+ },
+ "e51": {
+  "specs": [
+   "P:e51_02",
+   "P:e51_03",
+   "P:e51_09",
+   "P:e51_11"
+  ],
+  "note": ""
+ },
+ "e52": {
+  "specs": [
+   "U:https://cdn.shopify.com/s/files/1/0490/8007/4397/files/15539137955485119819.png",
+   "U:https://cdn.shopify.com/s/files/1/0490/8007/4397/files/womens-shark-print-bikini-2PC-c.png",
+   "U:https://cdn.shopify.com/s/files/1/0490/8007/4397/files/shark_print_bikini_bottoms.png"
+  ],
+  "note": ""
+ },
+ "e53": {
+  "specs": [
+   "P:e53_00"
+  ],
+  "note": ""
+ },
+ "e54": {
+  "specs": [
+   "U:https://cdn.shopify.com/s/files/1/0468/6004/2395/products/53103_florida_sharks_side1_b85d7d68-d0fd-4e35-86d9-5b398c0db587.jpg",
+   "U:https://cdn.shopify.com/s/files/1/0468/6004/2395/products/Hawaiian_Sharks_and_rays_side_1_fd5c4eea-5050-410f-adc5-090dfb2cf3bf.jpg",
+   "U:https://cdn.shopify.com/s/files/1/0468/6004/2395/products/California_sharks_inshore_v2_45ae9ce3-2d2d-4ff2-8706-b42e763e78e0.jpg",
+   "U:https://cdn.shopify.com/s/files/1/0468/6004/2395/files/BahamasSharks_RaysSide1.jpg"
+  ],
+  "note": ""
+ },
+ "e55": {
+  "specs": [
+   "U:https://m.media-amazon.com/images/P/B001YIT1YI.01._SCLZZZZZZZ_.jpg"
+  ],
+  "note": ""
+ },
+ "e56": {
+  "specs": [
+   "P:e56_00"
+  ],
+  "note": ""
+ },
+ "e57": {
+  "specs": [
+   "P:e57_00"
+  ],
+  "note": ""
+ },
+ "e58": {
+  "specs": [
+   "U:https://static.wixstatic.com/media/7ab14d_be479428acc64ade8e1d3f7a76cbc4d3~mv2.jpg"
+  ],
+  "note": ""
+ },
+ "e59": {
+  "specs": [
+   "P:e59_00"
+  ],
+  "note": ""
+ },
+ "e60": {
+  "specs": [
+   "U:https://cdn.shopify.com/s/files/1/1141/5276/products/9e948dea1ac14b3897e112796233f078_de14ea44-29a8-4bfa-a757-c9c6ee0003af.jpg",
+   "U:https://cdn.shopify.com/s/files/1/1141/5276/products/5bd6fb2735134dfaa5189e8a552f7824_aa9eb593-4a97-4fdb-a284-6802fdbfda5e.jpg",
+   "U:https://cdn.shopify.com/s/files/1/1141/5276/products/d5de0eba0e7f49b48a3bce86a51caa5f.jpg",
+   "U:https://cdn.shopify.com/s/files/1/1141/5276/products/9543ef91de1947f7a05e74d9ebb61ce5.jpg"
+  ],
+  "note": ""
+ },
+ "e61": {
+  "specs": [
+   "P:e61_01",
+   "P:e61_06",
+   "P:e61_08",
+   "P:e61_10"
+  ],
+  "note": ""
+ },
+ "e62": {
+  "specs": [
+   "P:e62_01",
+   "P:e15_01",
+   "P:e32_00",
+   "U:https://cdn.shopify.com/s/files/1/1141/5276/products/5bd6fb2735134dfaa5189e8a552f7824_aa9eb593-4a97-4fdb-a284-6802fdbfda5e.jpg"
+  ],
+  "note": ""
+ },
+ "e63": {
+  "specs": [
+   "P:e63_00",
+   "P:e63_01",
+   "P:e63_02",
+   "P:e63_08"
+  ],
+  "note": ""
+ },
+ "e64": {
+  "specs": [
+   "U:https://static.wixstatic.com/media/7ab14d_be479428acc64ade8e1d3f7a76cbc4d3~mv2.jpg",
+   "P:e64_01",
+   "P:e64_03",
+   "P:e64_05"
+  ],
+  "note": ""
+ },
+ "e65": {
+  "specs": [
+   "U:https://ih1.redbubble.net/image.6013215274.7262/ssrco,classic_tee,mens_02,101010:01c5ca27c6,front,product_square,x600.u2.jpg",
+   "P:e65_01",
+   "P:e65_08",
+   "P:e65_11"
+  ],
+  "note": ""
+ },
+ "e66": {
+  "specs": [],
+  "note": "Wix storefront is JS-only"
+ },
+ "e67": {
+  "specs": [
+   "P:e67_09",
+   "P:e67_10"
+  ],
+  "note": ""
+ },
+ "e68": {
+  "specs": [
+   "U:https://cdn.shopify.com/s/files/1/0500/4820/4965/files/TR25-0869.jpg",
+   "U:https://cdn.shopify.com/s/files/1/0500/4820/4965/products/c43ad12666d5ea6e52a67f3dc1a4f366.jpg",
+   "U:https://cdn.shopify.com/s/files/1/0500/4820/4965/products/54e743e3996a4d694dfee960e4ca9e19.jpg",
+   "U:https://cdn.shopify.com/s/files/1/0500/4820/4965/products/ff999cbd4cf7968cc1560a20fb1ba1ce.jpg"
+  ],
+  "note": ""
+ },
+ "e69": {
+  "specs": [
+   "P:e69_01",
+   "P:e69_05",
+   "P:e69_09",
+   "P:e69_10"
+  ],
+  "note": ""
+ },
+ "e70": {
+  "specs": [
+   "P:e70_01",
+   "P:e70_04",
+   "U:https://sharkstewards.org/wp-content/uploads/2020/03/Mens-Front.png",
+   "P:e70_08"
+  ],
+  "note": ""
+ },
+ "e71": {
+  "specs": [
+   "P:e71_00"
+  ],
+  "note": ""
+ },
+ "e72": {
+  "specs": [
+   "P:e72_00",
+   "P:e72_02",
+   "P:e72_07",
+   "P:e72_10"
+  ],
+  "note": ""
+ },
+ "e73": {
+  "specs": [
+   "P:e73_04",
+   "P:e73_05",
+   "P:e73_07"
+  ],
+  "note": ""
+ },
+ "e74": {
+  "specs": [
+   "P:e74_00"
+  ],
+  "note": ""
+ },
+ "e75": {
+  "specs": [
+   "P:e75_02"
+  ],
+  "note": ""
+ },
+ "e76": {
+  "specs": [
+   "P:e76_01"
+  ],
+  "note": ""
+ },
+ "e77": {
+  "specs": [
+   "P:e77_00"
+  ],
+  "note": ""
+ },
+ "e78": {
+  "specs": [
+   "U:https://www.aquariumofpacific.org/images/exhibits/Blacktip-Reef-Shark_LRG.jpg",
+   "U:https://www.aquariumofpacific.org/images/exhibits/Zebra-shark-swimming_LRG.jpg"
+  ],
+  "note": ""
+ },
+ "e79": {
+  "specs": [
+   "P:e79_02"
+  ],
+  "note": ""
+ },
+ "e80": {
+  "specs": [
+   "P:e80_00"
+  ],
+  "note": ""
+ },
+ "e81": {
+  "specs": [
+   "P:e81_01"
+  ],
+  "note": ""
+ },
+ "e82": {
+  "specs": [
+   "P:e82_00"
+  ],
+  "note": ""
+ },
+ "e83": {
+  "specs": [
+   "U:https://codeblackfossils.com/wp-content/uploads/2023/12/1000011960.jpg"
+  ],
+  "note": ""
+ },
+ "e84": {
+  "specs": [
+   "P:e84_00"
+  ],
+  "note": ""
+ },
+ "e85": {
+  "specs": [
+   "P:e85_00",
+   "P:e85_04",
+   "P:e85_05",
+   "P:e85_08"
+  ],
+  "note": ""
+ },
+ "e86": {
+  "specs": [
+   "P:e86_00"
+  ],
+  "note": ""
+ },
+ "e87": {
+  "specs": [
+   "P:e87_04",
+   "P:e87_06",
+   "P:e87_10"
+  ],
+  "note": ""
+ },
+ "e88": {
+  "specs": [
+   "P:e88_06"
+  ],
+  "note": ""
+ }
+}
