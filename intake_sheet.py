@@ -6,7 +6,10 @@ says what was already done and what the reader must do; the Review tab carries
 the frozen, bold, autofiltered header row. Evidence columns sit to the right
 of the editable ones, so a guess can always be traced to what produced it.
 """
+import re
+import sys
 from datetime import datetime
+from pathlib import Path
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -14,6 +17,7 @@ from openpyxl.utils import get_column_letter
 from PIL import Image, ImageDraw, ImageFont
 
 import intake_queue
+import pool
 from imgproc import autocrop, download, load
 from paths import HEARTBEAT, INTAKE, SHEETS
 
@@ -37,6 +41,8 @@ COLUMNS = [
     ("Their note", 34, "note", False),
     ("Received", 20, "received", False),
     ("Contact sheet", 14, None, False),
+    ("Fetch note", 46, "fetch_note", False),
+    ("HTTP", 7, "http", False),
     ("Queue id", 10, "queue_id", False),
 ]
 
@@ -44,11 +50,32 @@ EVIDENCE_FILL = PatternFill("solid", fgColor="F2F2F2")
 CELL, HDR, COLS = 190, 30, 12
 
 
+def ranked_candidates(row):
+    """This row's candidates in the order the contact sheet lays them out.
+
+    The sheet's numbers are what Simon types into Image pick, so exactly one
+    function may decide that order: intake_apply resolves a picked index
+    through this same call. Ranking is pool.score, against the words of the
+    row's own title, the way pool.build_pools derives them. Python's sort is
+    stable, so equally scored candidates keep harvest order.
+    """
+    cands = row.get("candidates") or []
+    words = set(re.findall(r"[a-z]{4,}", (row.get("title") or "").lower()))
+
+    def rank(c):
+        # A hand-edited or older queue row may be missing a key pool.score
+        # indexes directly; scoring it low is right, crashing the apply is not.
+        return pool.score(dict(url=c.get("url", ""), title=c.get("title", ""),
+                               src=c.get("src", "")), words)
+
+    return sorted(cands, key=rank, reverse=True)
+
+
 def contact_sheet(row):
     """A numbered grid of this item's candidate images. Returns None when the
     fetch was blocked or produced no candidates: an absent sheet must not be
     read as 'no good image exists'."""
-    cands = row.get("candidates") or []
+    cands = ranked_candidates(row)
     if not cands:
         return None
     SHEETS.mkdir(parents=True, exist_ok=True)
@@ -113,7 +140,9 @@ def _info(ws, rows):
          "the site refused the request, so its blank fields say nothing about the "
          "product. DEAD means the link no longer resolves to a product. EMPTY means "
          "the page was read and held nothing usable. NO_URL means the message carried "
-         "no link at all.", False),
+         "no link at all. Fetch note carries the fetch's own account of itself, "
+         "including whether the image harvest ran or crashed, so an empty Contact "
+         "sheet cell can be told apart from one that was never filled.", False),
         ("2. Check Duplicate of. An eNN value means this item is already in the "
          "document; a qNNNN value means it is already elsewhere in this sheet.", False),
         ("3. Fill in Description. This is the only field with no scraped source, and "
@@ -123,10 +152,12 @@ def _info(ws, rows):
          "Subsection must be one of the names already used in that section of the "
          "document; intake_apply.py will list the valid names if it does not match.",
          False),
-        ("5. Open the contact sheet linked in the last column and put the index of "
-         "the image you want in Image pick. The sheet shows only the first twelve "
-         "candidates, numbered from zero, and only those indices can be chosen. "
-         "Several are allowed, comma separated. Leave it blank for no image.", False),
+        ("5. Open the contact sheet linked in the Contact sheet column and put the "
+         "index of the image you want in Image pick. The sheet shows the twelve "
+         "best-ranked candidates, numbered from zero, and only those indices can be "
+         "chosen. Several are allowed, comma separated, and each must be a plain "
+         "whole number: anything else is refused rather than ignored. Leave it blank "
+         "for no image.", False),
         ("6. Set Status to ACCEPT, REJECT, or HOLD. Blank counts as HOLD. ACCEPT adds "
          "the entry; REJECT records the link so it is never queued again; HOLD leaves "
          "it for the next workbook.", False),
@@ -189,18 +220,44 @@ def write_workbook(rows, path):
     return path
 
 
-def build(path=None):
+def _free_path(force=False):
+    """Today's workbook, or a time-suffixed one beside it.
+
+    A second run on the same day must never silently replace the first: an
+    evening of description prose lives only in that file, and there is no
+    backup. --force is the explicit way to say otherwise.
+    """
+    now = datetime.now()
+    path = INTAKE / f"review_{now.strftime('%Y-%m-%d')}.xlsx"
+    if force or not path.exists():
+        return path
+    for stamp in (now.strftime("%H%M"), now.strftime("%H%M%S")):
+        candidate = INTAKE / f"review_{now.strftime('%Y-%m-%d')}_{stamp}.xlsx"
+        if not candidate.exists():
+            return candidate
+    raise SystemExit(f"{path} and its time-suffixed siblings all exist; "
+                     f"move them aside or pass --force")
+
+
+def build(path=None, force=False):
+    """Queue to workbook. Raises CorruptStateError rather than reporting an
+    empty queue when the queue file cannot be read: "nothing to review" and
+    "cannot tell what there is to review" are different answers."""
     rows = intake_queue.load_queue()
     if not rows:
         print("queue is empty, nothing to review")
         return None
     for row in rows:
         contact_sheet(row)
-    path = path or INTAKE / f"review_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+    if path is None:
+        path = _free_path(force)
+    elif Path(path).exists() and not force:
+        raise SystemExit(f"{path} already exists; pass --force to overwrite it, "
+                         f"or move it aside first")
     write_workbook(rows, path)
     print(f"{len(rows)} rows -> {path}")
     return path
 
 
 if __name__ == "__main__":
-    build()
+    build(force="--force" in sys.argv)

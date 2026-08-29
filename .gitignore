@@ -20,6 +20,8 @@ intake/*.json
 intake/*.xlsx
 intake/*.log
 intake/heartbeat
+# state files renamed aside by intake_queue when they could not be read
+intake/*.corrupt-*
 
 # Chosen product images: third-party retailer photos, kept local for now
 images/final/

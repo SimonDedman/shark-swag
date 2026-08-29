@@ -10,6 +10,7 @@ systemd owns liveness. Nothing here checks for a running process: in this
 harness a pgrep pattern matches the searching command itself and always says
 yes.
 """
+import hashlib
 import os
 import ssl
 import sys
@@ -30,6 +31,12 @@ IDLE_SECONDS = 15 * 60          # Gmail drops an idle connection at about 29 min
 SWEEP_SECONDS = 6 * 60 * 60
 RECONNECT_BACKOFF = (30, 60, 120, 300, 600)
 
+# systemd's RestartPreventExitStatus is set to this in the unit file: a
+# misconfiguration cannot be fixed by trying again in thirty seconds, so the
+# daemon says why once and stays down rather than looping with the reason
+# buried in the journal.
+EXIT_CONFIG = 78                # sysexits.h EX_CONFIG
+
 
 def log(message, dry_run=False):
     line = f"{datetime.now().astimezone().isoformat(timespec='seconds')}  {message}"
@@ -48,10 +55,18 @@ def beat(dry_run=False):
     HEARTBEAT.write_text(datetime.now().astimezone().isoformat() + "\n")
 
 
+class ConfigError(Exception):
+    """The daemon cannot start and no amount of retrying will change that."""
+
+
 def credentials():
     """Read the Gmail app password from the shared .env. Never logged."""
     values = {}
-    for line in ENV_FILE.read_text().splitlines():
+    try:
+        text = ENV_FILE.read_text()
+    except OSError as e:
+        raise ConfigError(f"cannot read {ENV_FILE}: {type(e).__name__}: {e}")
+    for line in text.splitlines():
         if line.startswith("#") or "=" not in line:
             continue
         key, _, value = line.partition("=")
@@ -59,7 +74,7 @@ def credentials():
     address = values.get("GMAIL_ADDRESS")
     password = values.get("GMAIL_APP_PASSWORD")
     if not address or not password:
-        raise SystemExit(f"GMAIL_ADDRESS or GMAIL_APP_PASSWORD missing from {ENV_FILE}")
+        raise ConfigError(f"GMAIL_ADDRESS or GMAIL_APP_PASSWORD missing from {ENV_FILE}")
     return address, password
 
 
@@ -69,10 +84,23 @@ def notify(count):
     os.system(f'notify-send "Shark swag" "{count} new submission(s) staged" >/dev/null 2>&1')
 
 
+def message_key(submission, raw):
+    """A stable ledger key for this message, header or no header.
+
+    Without the fallback a message carrying no Message-ID short-circuits the
+    ledger check, is staged again by every catch-up, every IDLE response, and
+    every six-hourly sweep, and records the empty-string key that would have
+    caught it. The digest of the raw bytes is stable across those passes and
+    unique to the message.
+    """
+    return submission.message_id or "sha1:" + hashlib.sha1(raw).hexdigest()
+
+
 def process_message(raw, dry_run=False):
     """Message bytes to queue rows. Returns [] if the message was already seen."""
     submission = intake_parse.parse_message(raw)
-    if submission.message_id and intake_queue.seen(submission.message_id, path=LEDGER):
+    submission.message_id = message_key(submission, raw)
+    if intake_queue.seen(submission.message_id, path=LEDGER):
         return []
 
     rows = []
@@ -115,13 +143,23 @@ def catch_up(client, dry_run=False):
             continue
         try:
             staged += len(process_message(raw, dry_run=dry_run))
+        except intake_queue.CorruptStateError:
+            # Not this message's problem, and not survivable: every later
+            # message would hit the same wall. Let it reach watch(), which
+            # stops the daemon rather than logging it once per message.
+            raise
         except Exception as e:
             log(f"ERROR processing uid {uid}: {type(e).__name__}: {e}", dry_run=dry_run)
     return staged
 
 
 def watch(dry_run=False):
-    address, password = credentials()
+    try:
+        address, password = credentials()
+    except ConfigError as e:
+        log(f"FATAL: {e}. Fix the .env and start the service again; "
+            f"this is not retried.", dry_run=dry_run)
+        raise SystemExit(EXIT_CONFIG)
     attempt = 0
     while True:
         try:
@@ -155,6 +193,9 @@ def watch(dry_run=False):
         except KeyboardInterrupt:
             log("stopped by hand", dry_run=dry_run)
             return
+        except intake_queue.CorruptStateError as e:
+            log(f"FATAL: {e} This is not retried.", dry_run=dry_run)
+            raise SystemExit(EXIT_CONFIG)
         except Exception as e:
             wait = RECONNECT_BACKOFF[min(attempt, len(RECONNECT_BACKOFF) - 1)]
             attempt += 1

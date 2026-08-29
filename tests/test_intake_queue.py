@@ -102,3 +102,82 @@ def test_new_row_carries_every_field_the_sheet_needs():
                 "price_source", "ngo_text", "section", "sub", "age", "keyword",
                 "duplicate_of", "candidates", "picked"):
         assert key in row, key
+
+
+# --- Critical 1: a corrupt state file must never read as an empty one, and a
+# write must never leave a truncated file behind. ---
+
+def test_a_truncated_queue_raises_instead_of_reading_as_empty(paths):
+    """The demonstrated failure: a half-written queue.json loaded as [], one
+    add_row then rewrote it with a single row, two staged submissions were
+    gone, and next_queue_id handed out q0001 again onto another item's stale
+    contact sheet."""
+    paths["queue"].write_text('[{"queue_id": "q0001", "url": "https://x.com/1"}, {"que')
+    with pytest.raises(q.CorruptStateError):
+        q.load_queue(path=paths["queue"])
+
+
+def test_a_corrupt_queue_is_moved_aside_and_named_in_the_error(paths):
+    paths["queue"].write_text("{not json at all")
+    with pytest.raises(q.CorruptStateError) as exc:
+        q.load_queue(path=paths["queue"])
+    aside = list(paths["queue"].parent.glob("queue.json.corrupt-*"))
+    assert len(aside) == 1
+    assert str(aside[0]) in str(exc.value)
+    assert not paths["queue"].exists()
+
+
+def test_add_row_on_a_corrupt_queue_refuses_rather_than_overwriting(paths):
+    paths["queue"].write_text('[{"queue_id": "q0001"}, {"que')
+    with pytest.raises(q.CorruptStateError):
+        q.add_row({"url": "https://x.com/2"}, path=paths["queue"])
+    # the bad bytes survive under the quarantine name; nothing was destroyed
+    aside = list(paths["queue"].parent.glob("queue.json.corrupt-*"))
+    assert aside[0].read_text().startswith('[{"queue_id": "q0001"}')
+
+
+def test_a_dict_shaped_queue_raises_instead_of_failing_later(paths):
+    """Previously this reached duplicate_of and died with AttributeError deep
+    inside the daemon's per-message handler."""
+    paths["queue"].write_text('{"q0001": {"url": "https://x.com/1"}}')
+    with pytest.raises(q.CorruptStateError) as exc:
+        q.load_queue(path=paths["queue"])
+    assert "dict" in str(exc.value)
+
+
+def test_a_list_shaped_ledger_raises(paths):
+    paths["ledger"].write_text('["a@b"]')
+    with pytest.raises(q.CorruptStateError):
+        q.seen("a@b", path=paths["ledger"])
+
+
+def test_a_list_shaped_rejected_map_raises(paths):
+    paths["rejected"].write_text('[]')
+    with pytest.raises(q.CorruptStateError):
+        q.load_rejected(path=paths["rejected"])
+
+
+def test_an_absent_file_is_still_nothing_to_do_not_a_failure(paths):
+    assert q.load_queue(path=paths["queue"]) == []
+    assert q.load_rejected(path=paths["rejected"]) == {}
+    assert q.seen("a@b", path=paths["ledger"]) is False
+
+
+def test_a_failed_write_leaves_the_previous_good_file(paths, monkeypatch):
+    q.save_queue([{"queue_id": "q0001"}, {"queue_id": "q0002"}], path=paths["queue"])
+    good = paths["queue"].read_text()
+
+    def boom(src, dst):
+        raise OSError("power cut")
+    monkeypatch.setattr(q.os, "replace", boom)
+    with pytest.raises(OSError):
+        q.save_queue([{"queue_id": "q0003"}], path=paths["queue"])
+
+    assert paths["queue"].read_text() == good
+    assert list(paths["queue"].parent.glob("*.tmp")) == []
+
+
+def test_a_successful_write_leaves_no_temp_file(paths):
+    q.save_queue([{"queue_id": "q0001"}], path=paths["queue"])
+    assert list(paths["queue"].parent.glob("*.tmp")) == []
+    assert len(q.load_queue(path=paths["queue"])) == 1

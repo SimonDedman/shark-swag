@@ -9,6 +9,10 @@ WorkingDirectory=/media/simon/data/Projects/shark-swag
 ExecStart=/home/simon/.venvs/scrape/bin/python /media/simon/data/Projects/shark-swag/intake_watch.py
 Restart=always
 RestartSec=30
+# 78 is EX_CONFIG: a missing credential or an unreadable state file cannot be
+# fixed by trying again in thirty seconds, so the daemon says why once and
+# stays down instead of looping with the reason buried in the journal.
+RestartPreventExitStatus=78
 StandardOutput=journal
 StandardError=journal
 
