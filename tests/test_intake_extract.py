@@ -94,3 +94,33 @@ def test_an_exception_is_blocked_never_empty():
     """A connection that never completed proves nothing about the page. Calling
     it EMPTY would turn a network fault into a finding about the product."""
     assert intake_extract.classify_status(None, None, "https://e.com/p", None) == "BLOCKED"
+
+
+def test_subdomain_consolidation_redirect_is_ok():
+    """example.com -> shop.example.com is the same brand, not a dead link."""
+    assert intake_extract.classify_status(
+        200, (PAGES / "jsonld_product.html").read_text(),
+        "https://example.com/products/x",
+        "https://shop.example.com/products/x") == "OK"
+
+
+def test_www_normalisation_redirect_is_ok():
+    assert intake_extract.classify_status(
+        200, (PAGES / "jsonld_product.html").read_text(),
+        "https://www.example.com/products/x",
+        "https://example.com/products/x") == "OK"
+
+
+def test_country_domain_redirect_is_ok():
+    """example.com -> example.co.uk is a country-TLD swap of the same brand."""
+    assert intake_extract.classify_status(
+        200, (PAGES / "jsonld_product.html").read_text(),
+        "https://example.com/products/x",
+        "https://example.co.uk/products/x") == "OK"
+
+
+def test_http_to_https_same_host_redirect_is_ok():
+    assert intake_extract.classify_status(
+        200, (PAGES / "jsonld_product.html").read_text(),
+        "http://example.com/products/x",
+        "https://example.com/products/x") == "OK"

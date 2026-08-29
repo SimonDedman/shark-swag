@@ -25,6 +25,31 @@ NGO_SENTENCE = re.compile(
 
 SYMBOL = {"USD": "$", "GBP": "£", "EUR": "€", "AUD": "AUD ", "CAD": "CAD "}
 
+# Common two-label public suffixes. No public-suffix library is installed
+# (and none should be added for this); this covers the shapes seen in
+# practice. Anything else falls back to the standard second-from-last label.
+TWO_PART_SUFFIXES = {"co.uk", "com.au", "co.nz", "co.za", "com.br", "co.jp", "co.in"}
+
+
+def _brand(netloc):
+    """The registrable-domain label, e.g. shop.example.com -> example.
+
+    Strips a leading www. and a trailing port, then takes the label
+    immediately before the public suffix, so subdomain and www redirects and
+    a same-brand country-TLD swap (example.com <-> example.co.uk) compare
+    equal, while a redirect to a genuinely different site (padigear.com vs
+    padi.com) does not.
+    """
+    host = (netloc or "").split(":", 1)[0].lower()
+    if host.startswith("www."):
+        host = host[4:]
+    parts = host.split(".")
+    if len(parts) >= 3 and ".".join(parts[-2:]) in TWO_PART_SUFFIXES:
+        return parts[-3]
+    if len(parts) >= 2:
+        return parts[-2]
+    return host
+
 
 @dataclass
 class Facts:
@@ -137,7 +162,7 @@ def classify_status(http, text, requested, final):
     if final:
         req = urlsplit(requested)
         fin = urlsplit(final)
-        if req.path.strip("/") and (fin.netloc != req.netloc or not fin.path.strip("/")):
+        if req.path.strip("/") and (_brand(fin.netloc) != _brand(req.netloc) or not fin.path.strip("/")):
             return "DEAD"
     soup = BeautifulSoup(text or "", "lxml")
     if not extract_title(soup) and not extract_price(soup, requested)[0]:
