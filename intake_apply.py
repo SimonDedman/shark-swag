@@ -5,6 +5,7 @@ Refuses to guess. An accepted row missing a section, a subsection, an item name,
 or a description stops the run and is named, because a wrong entry in the shared
 document costs more than a second pass over the sheet.
 """
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -15,11 +16,18 @@ import entries
 import intake_classify
 import intake_queue
 import picks as picks_mod
-from intake_sheet import COLS as CONTACT_SHEET_COLS
+from intake_sheet import COLS as CONTACT_SHEET_COLS, ranked_candidates
 from paths import INTAKE, ROOT
 
 VENV_PYTHON = "/home/simon/.venvs/scrape/bin/python"
 REQUIRED = ["Section", "Subsection", "Item", "Description"]
+
+# An index typed into Image pick is a position on the contact sheet, and
+# nothing else. Anything that is not a bare non-negative integer is refused
+# rather than skipped: a skipped fragment leaves picks.json holding an empty
+# spec list, which picks.py defines as "looked at, no usable image exists" —
+# a durable false statement bought with one stray hyphen.
+PICK_INDEX = re.compile(r"[0-9]+")
 
 
 def newest_workbook():
@@ -43,12 +51,35 @@ def read_workbook(path):
     return rows
 
 
+def _pick_fragments(raw, qid, errors):
+    """Split an Image pick cell into indices, complaining about anything else."""
+    out = []
+    for part in str(raw).split(","):
+        part = part.strip()
+        if PICK_INDEX.fullmatch(part):
+            out.append(int(part))
+        else:
+            errors.append(f"{qid}: Image pick {part!r} is not a whole number; "
+                          f"use the indices printed on the contact sheet, "
+                          f"comma separated")
+    return out
+
+
 def validate(rows, queue=None):
+    if queue is None:
+        queue = {r["queue_id"]: r for r in intake_queue.load_queue()}
     errors = []
     for row in rows:
         if row["Status"] != "ACCEPT":
             continue
         qid = row.get("Queue id") or "?"
+        if qid not in queue:
+            errors.append(
+                f"{qid}: this row is ACCEPT but no longer in the queue, which is "
+                f"what applying it removes. It looks as though this workbook has "
+                f"already been applied; applying it again would add every "
+                f"accepted entry a second time under a second id.")
+            continue
         for field in REQUIRED:
             if not str(row.get(field, "")).strip():
                 errors.append(f"{qid}: {field} is empty on an ACCEPT row")
@@ -61,14 +92,8 @@ def validate(rows, queue=None):
                     f"valid names are {valid}")
         raw = str(row.get("Image pick", "")).strip()
         if raw:
-            if queue is None:
-                queue = {r["queue_id"]: r for r in intake_queue.load_queue()}
-            cands = (queue.get(qid) or {}).get("candidates") or []
-            for part in raw.split(","):
-                part = part.strip()
-                if not part.isdigit():
-                    continue
-                index = int(part)
+            cands = ranked_candidates(queue.get(qid) or {})
+            for index in _pick_fragments(raw, qid, errors):
                 if index >= CONTACT_SHEET_COLS:
                     errors.append(
                         f"{qid}: Image pick {index} is off the "
@@ -104,19 +129,29 @@ def apply_row(row, data):
 
 
 def _picked_specs(row, queue_row):
-    """Turn "0,3" plus the row's candidates into picks.json specs."""
+    """Turn "0,3" plus the row's candidates into picks.json specs.
+
+    The index means a position on the contact sheet, so it is resolved through
+    the same ranked_candidates() the sheet laid out. validate() has already
+    refused anything malformed by the time main() gets here; the same refusal
+    is repeated rather than assumed, because this is the one function that
+    turns a number Simon typed into a URL.
+    """
     raw = str(row.get("Image pick", "")).strip()
     if not raw or not queue_row:
         return []
+    qid = row.get("Queue id") or "?"
+    errors = []
+    indices = _pick_fragments(raw, qid, errors)
+    if errors:
+        raise ValueError("; ".join(errors))
+    cands = ranked_candidates(queue_row)
     specs = []
-    for part in raw.split(","):
-        part = part.strip()
-        if not part.isdigit():
-            continue
-        index = int(part)
-        cands = queue_row.get("candidates") or []
-        if index < len(cands):
-            specs.append("U:" + cands[index]["url"])
+    for index in indices:
+        if index >= len(cands):
+            raise ValueError(f"{qid}: Image pick {index} is beyond this row's "
+                             f"{len(cands)} candidate(s)")
+        specs.append("U:" + cands[index]["url"])
     return specs
 
 
