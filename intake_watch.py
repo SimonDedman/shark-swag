@@ -31,15 +31,19 @@ SWEEP_SECONDS = 6 * 60 * 60
 RECONNECT_BACKOFF = (30, 60, 120, 300, 600)
 
 
-def log(message):
+def log(message, dry_run=False):
     line = f"{datetime.now().astimezone().isoformat(timespec='seconds')}  {message}"
     print(line, flush=True)
+    if dry_run:
+        return
     INTAKE_LOG.parent.mkdir(parents=True, exist_ok=True)
     with INTAKE_LOG.open("a") as fh:
         fh.write(line + "\n")
 
 
-def beat():
+def beat(dry_run=False):
+    if dry_run:
+        return
     HEARTBEAT.parent.mkdir(parents=True, exist_ok=True)
     HEARTBEAT.write_text(datetime.now().astimezone().isoformat() + "\n")
 
@@ -105,14 +109,14 @@ def catch_up(client, dry_run=False):
     if not uids:
         return 0
     staged = 0
-    for uid, data in client.fetch(uids, ["RFC822"]).items():
-        raw = data.get(b"RFC822")
+    for uid, data in client.fetch(uids, ["BODY.PEEK[]"]).items():
+        raw = data.get(b"BODY[]")
         if not raw:
             continue
         try:
             staged += len(process_message(raw, dry_run=dry_run))
         except Exception as e:
-            log(f"ERROR processing uid {uid}: {type(e).__name__}: {e}")
+            log(f"ERROR processing uid {uid}: {type(e).__name__}: {e}", dry_run=dry_run)
     return staged
 
 
@@ -125,34 +129,36 @@ def watch(dry_run=False):
                 client.login(address, password)
                 client.select_folder(FOLDER)
                 attempt = 0
-                log(f"connected, watching {FOLDER}")
+                log(f"connected, watching {FOLDER}", dry_run=dry_run)
                 staged = catch_up(client, dry_run)
-                beat()
+                beat(dry_run=dry_run)
                 notify(staged)
-                log(f"catch-up staged {staged} row(s)")
+                log(f"catch-up staged {staged} row(s)", dry_run=dry_run)
 
                 last_sweep = time.time()
                 while True:
                     client.idle()
-                    responses = client.idle_check(timeout=IDLE_SECONDS)
-                    client.idle_done()
+                    try:
+                        responses = client.idle_check(timeout=IDLE_SECONDS)
+                    finally:
+                        client.idle_done()
                     due = time.time() - last_sweep > SWEEP_SECONDS
                     if responses or due:
                         staged = catch_up(client, dry_run)
                         if due:
                             last_sweep = time.time()
-                            log(f"sweep staged {staged} row(s)")
+                            log(f"sweep staged {staged} row(s)", dry_run=dry_run)
                         elif staged:
-                            log(f"push staged {staged} row(s)")
+                            log(f"push staged {staged} row(s)", dry_run=dry_run)
                         notify(staged)
-                    beat()
+                    beat(dry_run=dry_run)
         except KeyboardInterrupt:
-            log("stopped by hand")
+            log("stopped by hand", dry_run=dry_run)
             return
         except Exception as e:
             wait = RECONNECT_BACKOFF[min(attempt, len(RECONNECT_BACKOFF) - 1)]
             attempt += 1
-            log(f"connection lost ({type(e).__name__}: {e}); retrying in {wait}s")
+            log(f"connection lost ({type(e).__name__}: {e}); retrying in {wait}s", dry_run=dry_run)
             time.sleep(wait)
 
 

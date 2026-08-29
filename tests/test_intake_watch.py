@@ -70,7 +70,53 @@ def test_dry_run_writes_nothing(isolated):
     assert not (isolated / "ledger.json").exists()
 
 
+def test_dry_run_writes_absolutely_nothing(isolated):
+    """--dry-run is what gets pointed at the real mailbox first: it must not
+    leave a queue, a ledger, a heartbeat, or a log line behind either."""
+    raw = (MAIL / "bare_url.eml").read_bytes()
+    rows = intake_watch.process_message(raw, dry_run=True)
+    intake_watch.beat(dry_run=True)
+    intake_watch.log("would have staged something", dry_run=True)
+    assert len(rows) == 1
+    assert list(isolated.iterdir()) == []
+
+
 def test_beat_writes_a_parseable_timestamp(isolated):
     intake_watch.beat()
     from datetime import datetime
     datetime.fromisoformat((isolated / "heartbeat").read_text().strip())
+
+
+class _FakeClient:
+    """Enough of an IMAPClient to exercise catch_up() without ever logging in."""
+
+    def __init__(self, raw):
+        self._raw = raw
+        self.fetch_calls = []
+
+    def search(self, criteria):
+        return [1]
+
+    def fetch(self, uids, items):
+        self.fetch_calls.append(list(items))
+        return {1: {b"BODY[]": self._raw}}
+
+
+def test_catch_up_peeks_instead_of_marking_seen(isolated):
+    """RFC822 (and BODY[] without .PEEK) sets \\Seen as a side effect; a
+    catch-up scan must never do that to Simon's real mailbox."""
+    raw = (MAIL / "bare_url.eml").read_bytes()
+    client = _FakeClient(raw)
+    staged = intake_watch.catch_up(client)
+    assert client.fetch_calls == [["BODY.PEEK[]"]]
+    assert staged == 1
+
+
+def test_catch_up_ignores_a_response_missing_the_body_key(isolated):
+    class EmptyClient(_FakeClient):
+        def fetch(self, uids, items):
+            self.fetch_calls.append(list(items))
+            return {1: {}}
+
+    client = EmptyClient(b"")
+    assert intake_watch.catch_up(client) == 0
