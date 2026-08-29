@@ -20,20 +20,30 @@ JUNK = re.compile(r"(logo|icon|favicon|sprite|badge|payment|visa|mastercard|payp
                   r"instagram|facebook|twitter|tiktok|youtube|klarna|afterpay|shopify_pay)", re.I)
 
 
-def fetch(url, timeout=30):
-    """Return (status, text_or_None, note). Cache 200s only."""
+def fetch_full(url, timeout=30):
+    """Return (status, text_or_None, final_url, note). Cache 200s only.
+
+    The final URL matters: a product page that 302s to a shop's front door is
+    dead, and looks identical to a healthy 200 without it.
+    """
     key = CACHE / (hashlib.sha1(url.encode()).hexdigest() + ".html")
     if key.exists():
-        return 200, key.read_text(errors="replace"), "cached"
+        return 200, key.read_text(errors="replace"), url, "cached"
     try:
         r = creq.get(url, impersonate=IMPERSONATE, timeout=timeout,
                      headers={"Accept-Language": "en-US,en;q=0.9"})
     except Exception as e:
-        return None, None, f"exception: {type(e).__name__}: {e}"
+        return None, None, None, f"exception: {type(e).__name__}: {e}"
     if r.status_code == 200:
         key.write_text(r.text, errors="replace")
-        return 200, r.text, "fetched"
-    return r.status_code, None, f"http {r.status_code}"
+        return 200, r.text, str(r.url), "fetched"
+    return r.status_code, None, str(r.url), f"http {r.status_code}"
+
+
+def fetch(url, timeout=30):
+    """Return (status, text_or_None, note)."""
+    status, text, _final, note = fetch_full(url, timeout)
+    return status, text, note
 
 
 def fetch_json(url, timeout=30):
