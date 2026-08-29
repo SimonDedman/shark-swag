@@ -11,10 +11,17 @@ def test_a_book_goes_to_section_three_even_when_it_mentions_gear():
     assert "book" in r.keyword
 
 
-def test_an_ngo_host_wins_over_the_product_words():
+def test_an_ngo_host_is_recorded_but_does_not_beat_the_product_words():
     r = g("Organic cotton tee", url="https://www.sharktrustclothing.com/products/tee")
+    assert r.section == "1"
+    assert "ngo:" in r.keyword
+
+
+def test_an_ngo_host_is_used_as_a_fallback_with_no_product_keyword():
+    r = g("Untitled listing", url="https://shop.sharktrust.org/products/thing")
     assert r.section == "6"
-    assert r.keyword.startswith("host:")
+    assert r.sub == "The Shark Trust (UK)"
+    assert r.sub in ic.valid_subs("6")
 
 
 def test_equipment_keywords():
@@ -91,3 +98,8 @@ def test_ngo_hosts_are_derived_from_the_data_not_hardcoded():
 def test_the_note_is_searched_as_well_as_the_title():
     r = g("Untitled listing", note="it is a lovely plush toy")
     assert r.section == "2"
+
+
+def test_art_and_screen_prints_are_section_five():
+    assert g("Oceanic 31 shark art print").section == "5"
+    assert g("Shark screen print, limited edition").section == "5"

@@ -27,7 +27,10 @@ from entries import load_items
 # Shark Dive", "Eye-to-Eye shark dive gift ticket", ...). "fins?" is narrowed
 # to the plural: singular "fin" also matched the brand name "Fin Pin Shop" in
 # three unrelated section-1/5 entries, with no true positive lost by requiring
-# the plural (see task-7-report.md, Step 5).
+# the plural (see task-7-report.md, Step 5). Bare "prints?" was removed for
+# the same reason (matched a garment's printed design, not an art product);
+# "art prints?"/"screen prints?" are narrow enough to keep the true positive
+# (an "Oceanic 31 shark art print") without re-admitting "shark print onesie".
 SECTION_RULES = [
     ("3", r"\b(books?|isbn|paperback|hardcover|picture book|author|publisher|ebooks?|"
           r"activity book|colouring book|coloring book)\b"),
@@ -35,7 +38,7 @@ SECTION_RULES = [
     ("4", r"\b(masks?|snorkel\w*|fins|wetsuits?|rash ?guards?|swim\w*|nets?|"
           r"binoculars?|microscopes?)\b"),
     ("5", r"\b(stickers?|colouring|coloring|crafts?|pencils?|stationery|posters?|"
-          r"notebooks?)\b"),
+          r"art prints?|screen prints?|notebooks?)\b"),
     ("2", r"\b(plush|soft toys?|toys?|figures?|figurines?|puzzles?|lego|games?|"
           r"playsets?|chess)\b"),
     ("1", r"\b(tees?|t-shirts?|shirts?|onesies?|bodysuits?|socks?|hoodies?|hats?|"
@@ -123,34 +126,64 @@ def _brand(host):
     return labels[-1] if labels else host
 
 
+def _root_domain(host):
+    """A tidy domain for evidence display: 'shop.sharktrust.org' -> 'sharktrust.org'."""
+    labels = host.split(".")
+    while len(labels) > 2 and labels[0] in _GENERIC_SUBDOMAINS:
+        labels = labels[1:]
+    return ".".join(labels)
+
+
+def _ngo_match(host):
+    """(known_host, subsection) if host belongs to a recorded NGO storefront."""
+    for known_host, sub in ngo_hosts().items():
+        if not host:
+            break
+        if host == known_host or host.endswith("." + known_host):
+            return known_host, sub
+        brand = _brand(known_host)
+        if len(brand) >= 5 and brand in host:
+            return known_host, sub
+    return None
+
+
 def classify(title, note="", url=""):
+    """Product keywords decide the section; an NGO host is a fallback, not a
+    veto. items.json's own section-6 note says organisations should "tag
+    individual items up in sections 1-5 ... so age-browsers don't miss
+    them" — the kind-based section is an item's primary home, and section 6
+    is a supplementary cross-listing. So a known host only chooses section
+    "6" when no product rule fires; when one already has, the host is
+    recorded as extra evidence (`ngo:<domain>`) rather than overriding it.
+    """
     text = f"{title} {note}".strip()
     host = urlsplit(url).netloc.lower()
     if host.startswith("www."):
         host = host[4:]
 
-    for known_host, sub in ngo_hosts().items():
-        if not host:
-            break
-        if host == known_host or host.endswith("." + known_host):
-            return Guess(section="6", sub=sub, age=_age(text), keyword=f"host:{known_host}")
-        brand = _brand(known_host)
-        if len(brand) >= 5 and brand in host:
-            return Guess(section="6", sub=sub, age=_age(text), keyword=f"host:{known_host}")
-
+    ngo = _ngo_match(host)
     section, keyword = _first_match(SECTION_RULES, text)
+    age = _age(text)
+
     if not section:
+        if ngo:
+            known_host, sub = ngo
+            return Guess(section="6", sub=sub, age=age, keyword=f"host:{known_host}")
         return Guess()
 
-    age = _age(text)
     if section == "4":
         sub, kind = _first_match(SECTION_4_RULES, text)
-        return Guess(section=section, sub=sub, age=age, keyword=f"{keyword}|{kind}".strip("|"))
-    if section == "7":
+        keyword = f"{keyword}|{kind}".strip("|")
+    elif section == "7":
         sub, kind = _first_match(SECTION_7_RULES, text)
-        return Guess(section=section, sub=sub, age=age, keyword=f"{keyword}|{kind}".strip("|"))
+        keyword = f"{keyword}|{kind}".strip("|")
+    else:
+        sub = age if age in valid_subs(section) else ""
 
-    sub = age if age in valid_subs(section) else ""
+    if ngo:
+        known_host, _sub = ngo
+        keyword = f"{keyword}|ngo:{_root_domain(known_host)}"
+
     return Guess(section=section, sub=sub, age=age, keyword=keyword)
 
 
