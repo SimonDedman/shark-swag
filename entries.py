@@ -13,7 +13,7 @@ import json
 import re
 from dataclasses import dataclass
 
-from paths import ITEMS, EXISTING_JSON
+from paths import ITEMS, EXISTING_JSON, PICKS_JSON
 
 ID_RE = re.compile(r"^e(\d{2,})$")
 
@@ -89,9 +89,24 @@ def id_num(entry_id):
     return int(m.group(1))
 
 
+def retired_ids():
+    """Ids that have been issued but are no longer in items.json or existing.json.
+
+    Deleting an item is a normal editorial act, and images/picks.json keeps its
+    key afterwards, as do the files in images/final/. Reading the picks keys is
+    what stops a deletion freeing an id for reuse: reissuing one would pair a
+    new entry with the deleted entry's pictures. Read as JSON rather than via
+    picks.py, which loads the whole pool at import time.
+    """
+    if not PICKS_JSON.exists():
+        return set()          # nothing has been picked yet; not the same as unreadable
+    picks = json.loads(PICKS_JSON.read_text())
+    return {k for k in picks if ID_RE.match(k)}
+
+
 def next_id(data=None):
-    highest = max(id_num(e.id) for e in iter_entries(data))
-    return f"e{highest + 1:02d}"
+    issued = {e.id for e in iter_entries(data)} | retired_ids()
+    return f"e{max(id_num(i) for i in issued) + 1:02d}"
 
 
 def entry_by_id(entry_id, data=None):
