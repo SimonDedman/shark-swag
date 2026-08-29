@@ -12,8 +12,10 @@ from datetime import datetime
 from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
+from openpyxl.drawing.image import Image as XLImage
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.utils.units import DEFAULT_ROW_HEIGHT, points_to_pixels
 from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.worksheet.datavalidation import DataValidation
 from PIL import Image, ImageDraw, ImageFont
@@ -224,6 +226,83 @@ def contact_sheet(row):
     out = SHEETS / f"pending_{row['queue_id']}.jpg"
     sheet.save(out, "JPEG", quality=88)
     return out
+
+
+def ensure_contact_sheet(row):
+    """This row's contact sheet path, regenerating the JPG first if it is
+    missing - deleted by an unrelated cleanup, say - so a gone cache file
+    repairs itself rather than silently breaking review. Regenerating costs
+    nothing but CPU: imgproc.download caches by URL, so the source images do
+    not come off the network again.
+
+    Returns None, never a path to a file that does not exist, when the row
+    has no candidates to draw at all; callers must tell that apart from a
+    row whose sheet merely needed rebuilding.
+    """
+    sheet_path = SHEETS / f"pending_{row['queue_id']}.jpg"
+    if not sheet_path.exists():
+        contact_sheet(row)
+    return sheet_path if sheet_path.exists() else None
+
+
+# Excel/LibreOffice's own default row height, converted to the pixels an
+# embedded image's height is measured in, so the row span reserved for a
+# contact sheet is derived from its actual size rather than a guessed constant.
+_ROW_HEIGHT_PX = points_to_pixels(DEFAULT_ROW_HEIGHT)
+
+IMAGES_NOTE = (
+    "Each picture below is numbered from zero, left to right. The number under "
+    "the picture you want goes in Image pick on the Review tab; give several, "
+    "comma-separated, to keep more than one. Only the pictures shown here, up "
+    "to twelve per item, can be chosen."
+)
+
+
+def _rows_spanned(height_px, row_height_px=_ROW_HEIGHT_PX):
+    """How many worksheet rows an embedded image this tall occupies at the
+    sheet's default row height, plus one blank row of clearance so the next
+    heading is never overlapped."""
+    return -(-height_px // row_height_px) + 1  # ceil(height / row_height) + 1
+
+
+def _image_heading(row):
+    """'q0001 — Hide & Drink shark coin pouch'. Falls back to the URL the
+    same way contact_sheet's own banner text does, so a title-less row still
+    gets a readable heading rather than a blank one."""
+    return f"{row['queue_id']} — {(row.get('title') or row['url']).strip()}"
+
+
+def build_images_sheet(wb, rows):
+    """The Images tab: the workbook's own copy of every pending row's contact
+    sheet, embedded rather than linked, so review never depends on a cached
+    JPG surviving on disk after the workbook is built. Ordered last, after
+    Info, Review, and Lists.
+
+    A row with no candidates gets its heading and an explanatory line instead
+    of a silent gap, so it reads as "this page yielded no candidates" rather
+    than as an oversight.
+    """
+    ws = wb.create_sheet("Images")
+    ws.column_dimensions["A"].width = 118
+    note = ws.cell(row=1, column=1, value=IMAGES_NOTE)
+    note.font = Font(bold=True)
+    note.alignment = Alignment(wrap_text=True, vertical="top")
+
+    r = 3
+    for row in rows:
+        heading = ws.cell(row=r, column=1, value=_image_heading(row))
+        heading.font = Font(bold=True)
+        r += 1
+        sheet_path = ensure_contact_sheet(row)
+        if sheet_path is None:
+            ws.cell(row=r, column=1,
+                    value="No candidate images were found for this item.")
+            r += 2
+            continue
+        img = XLImage(str(sheet_path))
+        ws.add_image(img, f"A{r}")
+        r += _rows_spanned(img.height)
+    return ws
 
 
 def _last_poll():
@@ -455,9 +534,12 @@ def write_workbook(rows, path):
     for r, row in enumerate(rows, 2):
         for i, (header, _w, key, editable) in enumerate(COLUMNS, 1):
             if header == "Contact sheet":
-                sheet_path = SHEETS / f"pending_{row['queue_id']}.jpg"
-                value = (f'=HYPERLINK("{sheet_path}","images")'
-                         if sheet_path.exists() else "")
+                # LibreOffice, which is what actually opens these, wants a
+                # file:// URI here rather than a bare POSIX path - a bare
+                # path opens nothing and gives no error either.
+                sheet_path = ensure_contact_sheet(row)
+                value = (f'=HYPERLINK("{sheet_path.as_uri()}","images")'
+                         if sheet_path else "")
             elif header == "Section":
                 value = section_label(row.get(key, ""))
             elif header == "NGO?":
@@ -483,6 +565,8 @@ def write_workbook(rows, path):
 
     ranges = build_lists_sheet(wb)
     _attach_dropdowns(ws, ranges, len(rows))
+
+    build_images_sheet(wb, rows)
 
     wb.save(path)
     return path
@@ -516,7 +600,7 @@ def build(path=None, force=False):
         print("queue is empty, nothing to review")
         return None
     for row in rows:
-        contact_sheet(row)
+        ensure_contact_sheet(row)
     if path is None:
         path = _free_path(force)
     elif Path(path).exists() and not force:

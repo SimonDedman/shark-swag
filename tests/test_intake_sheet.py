@@ -1,5 +1,6 @@
 import openpyxl
 import pytest
+from openpyxl.drawing.image import Image as XLImage
 from openpyxl.utils import get_column_letter
 
 import intake_sheet
@@ -372,7 +373,7 @@ def _dv_for_column(ws, headers, header):
 
 
 def test_lists_tab_exists_ordered_after_info_and_review(book):
-    assert book.sheetnames == ["Info", "Review", "Lists"]
+    assert book.sheetnames == ["Info", "Review", "Lists", "Images"]
 
 
 def test_lists_tab_is_visible_not_hidden(book):
@@ -560,3 +561,151 @@ def test_write_workbook_with_no_rows_still_builds_lists_and_validations(tmp_path
     wb = openpyxl.load_workbook(path)
     assert "Lists" in wb.sheetnames
     assert any(wb["Review"].data_validations.dataValidation)
+
+
+# --- Images tab: the workbook carries its own copy of every pending row's
+# contact sheet, so a later cleanup that deletes images/sheets/*.jpg cannot
+# leave the reviewer looking at a blank Image pick with nothing to go on. ---
+
+def _stub_download(tmp_path):
+    """A fake imgproc.download that hands back one small real JPEG for any
+    URL, so contact_sheet() can build a genuine image without touching the
+    network."""
+    def fake(url, referer=None):
+        stub = tmp_path / "stub.jpg"
+        if not stub.exists():
+            from PIL import Image as PILImage
+            PILImage.new("RGB", (40, 40), (10, 20, 30)).save(stub, "JPEG")
+        return stub, "stubbed"
+    return fake
+
+
+def test_images_tab_embeds_a_real_image_for_a_row_with_candidates(tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_sheet, "SHEETS", tmp_path)
+    monkeypatch.setattr(intake_sheet, "download", _stub_download(tmp_path))
+
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([dict(ROW, candidates=CANDS)], path)
+
+    ws = openpyxl.load_workbook(path)["Images"]
+    assert len(ws._images) == 1
+
+
+def test_images_tab_heading_names_the_queue_id_and_title(tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_sheet, "SHEETS", tmp_path)
+    monkeypatch.setattr(intake_sheet, "download", _stub_download(tmp_path))
+
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([dict(ROW, candidates=CANDS)], path)
+
+    ws = openpyxl.load_workbook(path)["Images"]
+    headings = [c.value for col in ws.iter_cols(min_col=1, max_col=1)
+                for c in col if c.value]
+    assert any("q0001" in h and "Shark socks" in h for h in headings)
+
+
+def test_images_tab_notes_a_row_with_no_candidates_rather_than_a_gap(tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_sheet, "SHEETS", tmp_path)
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([dict(ROW, candidates=[])], path)
+
+    ws = openpyxl.load_workbook(path)["Images"]
+    texts = [c.value for col in ws.iter_cols(min_col=1, max_col=1)
+             for c in col if c.value]
+    assert any("no candidate" in t.lower() for t in texts)
+    assert not ws._images
+
+
+def test_a_second_row_heading_is_never_overlapped_by_the_first_rows_image(
+        tmp_path, monkeypatch):
+    """The gap after an embedded image is derived from its own pixel height,
+    not a guessed constant, so a tall sheet cannot collide with the next
+    heading."""
+    monkeypatch.setattr(intake_sheet, "SHEETS", tmp_path)
+    monkeypatch.setattr(intake_sheet, "download", _stub_download(tmp_path))
+
+    row_a = dict(ROW, queue_id="q0001", candidates=CANDS)
+    row_b = dict(ROW, queue_id="q0002", candidates=CANDS)
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([row_a, row_b], path)
+
+    ws = openpyxl.load_workbook(path)["Images"]
+    heading_rows = sorted(
+        c.row for col in ws.iter_cols(min_col=1, max_col=1) for c in col
+        if c.value and str(c.value).startswith("q000"))
+    first_heading_row, second_heading_row = heading_rows[0], heading_rows[1]
+    img_height_px = XLImage(str(tmp_path / "pending_q0001.jpg")).height
+    min_gap_rows = -(-img_height_px // intake_sheet._ROW_HEIGHT_PX)
+    assert second_heading_row - first_heading_row > min_gap_rows
+
+
+def test_contact_sheet_hyperlink_is_a_file_uri(tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_sheet, "SHEETS", tmp_path)
+    monkeypatch.setattr(intake_sheet, "download", _stub_download(tmp_path))
+
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([dict(ROW, candidates=CANDS)], path)
+
+    ws = openpyxl.load_workbook(path)["Review"]
+    headers = [c.value for c in ws[1]]
+    formula = ws.cell(row=2, column=headers.index("Contact sheet") + 1).value
+    assert formula.startswith('=HYPERLINK("file://')
+    assert str(tmp_path) in formula
+
+
+def test_contact_sheet_cell_stays_blank_when_there_is_no_sheet(tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_sheet, "SHEETS", tmp_path)
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([dict(ROW, candidates=[])], path)
+
+    ws = openpyxl.load_workbook(path)["Review"]
+    headers = [c.value for c in ws[1]]
+    assert ws.cell(row=2, column=headers.index("Contact sheet") + 1).value in (None, "")
+
+
+def test_build_regenerates_a_deleted_contact_sheet_rather_than_skipping_it(
+        tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_sheet, "SHEETS", tmp_path)
+    monkeypatch.setattr(intake_sheet, "INTAKE", tmp_path)
+    monkeypatch.setattr(intake_sheet.intake_queue, "QUEUE", tmp_path / "queue.json")
+    monkeypatch.setattr(intake_sheet, "download", _stub_download(tmp_path))
+
+    intake_sheet.intake_queue.save_queue([dict(ROW, candidates=CANDS)])
+
+    workbook_path = intake_sheet.build()
+    sheet_path = tmp_path / "pending_q0001.jpg"
+    assert sheet_path.exists()
+    sheet_path.unlink()
+    assert not sheet_path.exists()
+
+    rebuilt = intake_sheet.build(path=workbook_path, force=True)
+
+    assert sheet_path.exists()
+    ws = openpyxl.load_workbook(rebuilt)["Images"]
+    assert len(ws._images) == 1
+
+
+def test_ensure_contact_sheet_leaves_an_existing_file_untouched(tmp_path, monkeypatch):
+    """Regenerating only when the file is absent - never unconditionally -
+    means an existing sheet is not rewritten (and nothing is re-fetched) on
+    every call."""
+    monkeypatch.setattr(intake_sheet, "SHEETS", tmp_path)
+    monkeypatch.setattr(intake_sheet, "download", _stub_download(tmp_path))
+
+    row = dict(ROW, candidates=CANDS)
+    first = intake_sheet.ensure_contact_sheet(row)
+    marker = first.stat().st_mtime_ns
+
+    calls = []
+    monkeypatch.setattr(intake_sheet, "download",
+                        lambda *a, **k: calls.append(1) or (None, "should not be called"))
+    second = intake_sheet.ensure_contact_sheet(row)
+
+    assert second == first
+    assert second.stat().st_mtime_ns == marker
+    assert calls == []
+
+
+def test_ensure_contact_sheet_returns_none_for_a_row_with_no_candidates(tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_sheet, "SHEETS", tmp_path)
+    assert intake_sheet.ensure_contact_sheet(dict(ROW, candidates=[])) is None
