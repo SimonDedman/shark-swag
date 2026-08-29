@@ -1,0 +1,207 @@
+import openpyxl
+import pytest
+
+import intake_sheet
+
+
+ROW = dict(queue_id="q0001", message_id="m1", received="2026-08-28T09:14:02-07:00",
+           sender="Simon Dedman", note="nephew has a pair",
+           url="https://shop.com/products/socks", url_norm="https://shop.com/products/socks",
+           fetch_status="OK", http=200, fetch_note="fetched", title="Shark socks",
+           price="~£12.50", price_source="itemprop",
+           ngo_text="5% of profits go to the Shark Trust.", section="1", sub="Adult",
+           age="Adult", keyword="socks", duplicate_of="", candidates=[], picked="")
+
+BLOCKED = dict(ROW, queue_id="q0002", fetch_status="BLOCKED", http=403, title="",
+               price="", price_source="", ngo_text="", section="", sub="", keyword="")
+
+
+@pytest.fixture
+def book(tmp_path):
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([ROW, BLOCKED], path)
+    return openpyxl.load_workbook(path)
+
+
+def test_info_tab_is_first(book):
+    assert book.sheetnames[0] == "Info"
+
+
+def test_review_tab_exists(book):
+    assert "Review" in book.sheetnames
+
+
+def test_header_row_is_frozen_bold_and_filtered(book):
+    ws = book["Review"]
+    assert ws.freeze_panes == "A2"
+    assert ws["A1"].font.bold is True
+    assert ws.auto_filter.ref is not None
+
+
+def test_status_column_is_first_and_empty(book):
+    ws = book["Review"]
+    assert ws["A1"].value == "Status"
+    assert ws["A2"].value in (None, "")
+
+
+def test_every_row_reaches_the_sheet(book):
+    ws = book["Review"]
+    assert ws.max_row == 3
+
+
+def test_scraped_values_are_pre_filled(book):
+    ws = book["Review"]
+    headers = [c.value for c in ws[1]]
+    row = {h: ws.cell(row=2, column=i + 1).value for i, h in enumerate(headers)}
+    assert row["Item"] == "Shark socks"
+    assert row["Approx. price"] == "~£12.50"
+    assert row["Suggested by"] == "Simon Dedman"
+    assert row["Description"] in (None, "")
+
+
+def test_a_blocked_row_says_blocked_and_does_not_look_empty(book):
+    ws = book["Review"]
+    headers = [c.value for c in ws[1]]
+    row = {h: ws.cell(row=3, column=i + 1).value for i, h in enumerate(headers)}
+    assert row["Fetch"] == "BLOCKED"
+    assert row["Item"] in (None, "")
+
+
+def test_info_tab_states_the_counts_and_the_last_poll(book):
+    text = " ".join(str(c.value) for r in book["Info"].iter_rows() for c in r if c.value)
+    assert "BLOCKED" in text
+    assert "last successful poll" in text.lower()
+    assert "ACCEPT" in text and "REJECT" in text and "HOLD" in text
+
+
+# --- Important 4: fetch_note and the HTTP status were written into every queue
+# row and read by nothing, so a crashed image harvest looked exactly like a
+# page with no usable images. ---
+
+def test_the_fetch_note_reaches_a_column(tmp_path):
+    row = dict(ROW, fetch_note="fetched; IMAGE HARVEST FAILED (TimeoutError: read timed out)")
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([row], path)
+    ws = openpyxl.load_workbook(path)["Review"]
+    headers = [c.value for c in ws[1]]
+    assert "Fetch note" in headers
+    cell = ws.cell(row=2, column=headers.index("Fetch note") + 1)
+    assert "IMAGE HARVEST FAILED" in cell.value
+
+
+def test_the_http_status_reaches_a_column(book):
+    ws = book["Review"]
+    headers = [c.value for c in ws[1]]
+    assert "HTTP" in headers
+    assert ws.cell(row=3, column=headers.index("HTTP") + 1).value == 403
+
+
+def test_an_unused_evidence_column_is_still_hidden(tmp_path):
+    """The hide-empty rule keeps the new columns from crowding the sheet when
+    every fetch went cleanly."""
+    row = dict(ROW, fetch_note="", http=None)
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([row], path)
+    ws = openpyxl.load_workbook(path)["Review"]
+    headers = [c.value for c in ws[1]]
+    from openpyxl.utils import get_column_letter
+    col = get_column_letter(headers.index("Fetch note") + 1)
+    assert ws.column_dimensions[col].hidden is True
+
+
+# --- Important 7: the contact sheet showed twelve candidates in harvest order,
+# not pool.py's ranking, so on a page with 88 candidates the twelve Simon saw
+# were an unrepresentative slice of the page. ---
+
+CANDS = [
+    dict(url="https://shop.com/img/footer-logo.png", title="", src="img"),
+    dict(url="https://shop.com/img/shark-socks-1200x.jpg", title="Shark socks",
+         src="shopify-product"),
+    dict(url="https://shop.com/img/banner.png", title="", src="meta"),
+]
+
+
+def test_the_contact_sheet_is_ranked_not_page_ordered():
+    ranked = intake_sheet.ranked_candidates(dict(ROW, candidates=CANDS))
+    assert [c["src"] for c in ranked] == ["shopify-product", "meta", "img"]
+
+
+def test_ranking_is_stable_for_equally_scored_candidates():
+    same = [dict(url=f"https://shop.com/{i}.jpg", title="", src="img") for i in range(5)]
+    ranked = intake_sheet.ranked_candidates(dict(ROW, candidates=same))
+    assert [c["url"] for c in ranked] == [c["url"] for c in same]
+
+
+def test_a_row_with_no_candidates_ranks_to_nothing():
+    assert intake_sheet.ranked_candidates(dict(ROW, candidates=[])) == []
+
+
+# --- Important 10: the index-to-candidate contract was asserted nowhere. The
+# number drawn under cell j must be the index that selects ranked[j]. ---
+
+def test_the_drawn_index_labels_follow_the_ranked_candidate_list(tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_sheet, "SHEETS", tmp_path)
+    asked = []
+
+    def fake_download(url, referer=None):
+        asked.append(url)
+        return None, "stubbed"
+    monkeypatch.setattr(intake_sheet, "download", fake_download)
+
+    row = dict(ROW, candidates=CANDS)
+    out = intake_sheet.contact_sheet(row)
+    assert out == tmp_path / "pending_q0001.jpg"
+    assert out.exists()
+    # cell 0 is drawn from the first ranked candidate, cell 1 from the second,
+    # and so on: the labels are positions in this list, and nothing else.
+    assert asked == [c["url"] for c in intake_sheet.ranked_candidates(row)]
+
+
+# --- Important 12: a second run on the same day silently destroyed an evening
+# of description prose. ---
+
+def test_build_does_not_overwrite_todays_workbook(tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_sheet, "INTAKE", tmp_path)
+    monkeypatch.setattr(intake_sheet.intake_queue, "QUEUE", tmp_path / "queue.json")
+    intake_sheet.intake_queue.save_queue([dict(ROW, candidates=[])])
+
+    first = intake_sheet.build()
+    first.write_bytes(first.read_bytes() + b"")   # stands in for an edited file
+    marker = first.stat().st_size
+    second = intake_sheet.build()
+
+    assert second != first
+    assert first.exists() and first.stat().st_size == marker
+
+
+def test_build_refuses_an_explicit_path_that_already_exists(tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_sheet, "INTAKE", tmp_path)
+    monkeypatch.setattr(intake_sheet.intake_queue, "QUEUE", tmp_path / "queue.json")
+    intake_sheet.intake_queue.save_queue([dict(ROW, candidates=[])])
+    target = tmp_path / "review.xlsx"
+    target.write_text("an evening of prose")
+    with pytest.raises(SystemExit):
+        intake_sheet.build(path=target)
+    assert target.read_text() == "an evening of prose"
+
+
+def test_force_overwrites_deliberately(tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_sheet, "INTAKE", tmp_path)
+    monkeypatch.setattr(intake_sheet.intake_queue, "QUEUE", tmp_path / "queue.json")
+    intake_sheet.intake_queue.save_queue([dict(ROW, candidates=[])])
+    target = tmp_path / "review.xlsx"
+    target.write_text("stale")
+    assert intake_sheet.build(path=target, force=True) == target
+    assert openpyxl.load_workbook(target).sheetnames[0] == "Info"
+
+
+# --- Critical 1: an unreadable queue must not report itself as an empty one. ---
+
+def test_build_on_a_corrupt_queue_raises_rather_than_saying_it_is_empty(
+        tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(intake_sheet, "INTAKE", tmp_path)
+    monkeypatch.setattr(intake_sheet.intake_queue, "QUEUE", tmp_path / "queue.json")
+    (tmp_path / "queue.json").write_text('[{"queue_id": "q0001"}, {"que')
+    with pytest.raises(intake_sheet.intake_queue.CorruptStateError):
+        intake_sheet.build()
+    assert "queue is empty" not in capsys.readouterr().out

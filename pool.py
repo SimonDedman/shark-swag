@@ -7,11 +7,10 @@ from concurrent.futures import ThreadPoolExecutor
 from PIL import Image, ImageDraw, ImageFont
 sys.path.insert(0, "/media/simon/data/Projects/shark-swag")
 from imgproc import prepare, download, load, autocrop
+from paths import POOL_DIR, SHEETS, CANDIDATES, EXTRAS, POOL_JSON, ROOT
+from entries import iter_entries
 
-ROOT = Path("/media/simon/data/Projects/shark-swag")
-POOLDIR = ROOT / "images" / "pool"
-SHEETS = ROOT / "images" / "sheets"
-for p in (POOLDIR, SHEETS):
+for p in (POOL_DIR, SHEETS):
     p.mkdir(parents=True, exist_ok=True)
 
 BAD = re.compile(r"\.svg($|\?)|/sash/|kindle|QR-store|books-voyager|nav[-_]|/G/01/|"
@@ -42,17 +41,20 @@ def score(c, entry_words):
 
 
 def build_pools():
-    d = json.loads((ROOT / "images" / "candidates.json").read_text())
-    ex_path = ROOT / "images" / "extras.json"
-    extras = json.loads(ex_path.read_text()) if ex_path.exists() else {}
+    """Rank each entry's candidates, keyed by the entry's stable id.
+
+    Candidate URLs come from candidates.json, which is keyed by product URL, so
+    entry order in that file is irrelevant here.
+    """
+    d = json.loads(CANDIDATES.read_text())
+    extras = json.loads(EXTRAS.read_text()) if EXTRAS.exists() else {}
     pools = {}
-    for i, e in enumerate(d["entries"], 1):
-        v = d["per_url"][e["link"]]
-        words = set(re.findall(r"[a-z]{4,}", e["item"].lower()))
-        cands = []
-        seen = set()
+    for e in iter_entries():
+        v = d["per_url"][e.link]
+        words = set(re.findall(r"[a-z]{4,}", e.item.lower()))
+        cands, seen = [], set()
         # supplementary sources first: they are catalogue products, not page furniture
-        for c in extras.get(str(i), []):
+        for c in extras.get(e.id, []):
             u = clean(c["url"])
             if u.split("?")[0] in seen:
                 continue
@@ -69,9 +71,9 @@ def build_pools():
             cands.append(dict(url=u, title=c.get("title", ""), src=c["src"],
                               score=score(c, words)))
         cands.sort(key=lambda c: -c["score"])
-        pools[str(i)] = dict(item=e["item"], link=e["link"], section=e["section"],
-                             sub=e["sub"], cands=cands[:24])
-    (ROOT / "images" / "pool.json").write_text(json.dumps(pools, indent=1))
+        pools[e.id] = dict(item=e.item, link=e.link, section=e.section,
+                           sub=e.sub, cands=cands[:24])
+    POOL_JSON.write_text(json.dumps(pools, indent=1))
     return pools
 
 
@@ -85,7 +87,7 @@ def fetch_pool(pools, workers=8):
 
     def work(job):
         name, url, ref = job
-        out = POOLDIR / f"{name}.jpg"
+        out = POOL_DIR / f"{name}.jpg"
         if out.exists():
             return name, "cached"
         p, note = download(url, referer=ref)
@@ -123,7 +125,7 @@ def sheets(pools, per_sheet=3, cols=12):
     except Exception:
         font = small = ImageFont.load_default()
     CELL, HDR = 190, 34
-    keys = sorted(pools, key=int)
+    keys = sorted(pools, key=lambda k: int(k[1:]))
     n = 0
     for s in range(0, len(keys), per_sheet):
         chunk = keys[s:s + per_sheet]
@@ -139,7 +141,7 @@ def sheets(pools, per_sheet=3, cols=12):
             y += HDR
             x = 10
             for j in range(cols):
-                p = POOLDIR / f"{k}_{j:02d}.jpg"
+                p = POOL_DIR / f"{k}_{j:02d}.jpg"
                 dr.rectangle([x, y, x + CELL - 6, y + CELL - 6], outline=(200, 200, 200))
                 dr.text((x + 3, y + CELL - 4), str(j), fill=(120, 120, 120), font=small)
                 if p.exists():

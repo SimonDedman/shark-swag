@@ -11,10 +11,8 @@ from urllib.parse import urljoin, urlparse
 from curl_cffi import requests as creq
 from bs4 import BeautifulSoup
 
-ROOT = Path("/media/simon/data/Projects/shark-swag")
-CACHE = ROOT / "images" / "htmlcache"
+from paths import ROOT, HTMLCACHE as CACHE, CANDIDATES as OUT, ITEMS
 CACHE.mkdir(parents=True, exist_ok=True)
-OUT = ROOT / "images" / "candidates.json"
 
 IMPERSONATE = "chrome124"
 JUNK = re.compile(r"(logo|icon|favicon|sprite|badge|payment|visa|mastercard|paypal|amex|"
@@ -22,20 +20,30 @@ JUNK = re.compile(r"(logo|icon|favicon|sprite|badge|payment|visa|mastercard|payp
                   r"instagram|facebook|twitter|tiktok|youtube|klarna|afterpay|shopify_pay)", re.I)
 
 
-def fetch(url, timeout=30):
-    """Return (status, text_or_None, note). Cache 200s only."""
+def fetch_full(url, timeout=30):
+    """Return (status, text_or_None, final_url, note). Cache 200s only.
+
+    The final URL matters: a product page that 302s to a shop's front door is
+    dead, and looks identical to a healthy 200 without it.
+    """
     key = CACHE / (hashlib.sha1(url.encode()).hexdigest() + ".html")
     if key.exists():
-        return 200, key.read_text(errors="replace"), "cached"
+        return 200, key.read_text(errors="replace"), url, "cached"
     try:
         r = creq.get(url, impersonate=IMPERSONATE, timeout=timeout,
                      headers={"Accept-Language": "en-US,en;q=0.9"})
     except Exception as e:
-        return None, None, f"exception: {type(e).__name__}: {e}"
+        return None, None, None, f"exception: {type(e).__name__}: {e}"
     if r.status_code == 200:
         key.write_text(r.text, errors="replace")
-        return 200, r.text, "fetched"
-    return r.status_code, None, f"http {r.status_code}"
+        return 200, r.text, str(r.url), "fetched"
+    return r.status_code, None, str(r.url), f"http {r.status_code}"
+
+
+def fetch(url, timeout=30):
+    """Return (status, text_or_None, note)."""
+    status, text, _final, note = fetch_full(url, timeout)
+    return status, text, note
 
 
 def fetch_json(url, timeout=30):
@@ -205,22 +213,10 @@ def harvest(url):
 
 
 def main():
-    data = json.loads((ROOT / "items.json").read_text())
-    entries = []
-    for s in data["sections"]:
-        for sub in s["subsections"]:
-            for it in sub["items"]:
-                entries.append(dict(section=s["number"], sub=sub["name"],
-                                    item=it["item"], link=it["link"]))
-    # the four entries already in the shared doc
-    for item, link in [
-        ("SPHYRNAS — tees, hoodies, hats, accessories", "https://www.sphyrnas.com/products"),
-        ("Sharks Preschool Activity Book", "https://a.co/d/0aaGljoi"),
-        ("Underwater Photography and Editing Ebooks", "https://www.gillianshark.com/ebooks"),
-        ("Colouring & Facts Book (currently only available as PDF)",
-         "https://www.gillianshark.com/colouring-book"),
-    ]:
-        entries.append(dict(section="EXISTING", sub="", item=item, link=link))
+    from entries import iter_entries
+    entries_ = iter_entries()
+    entries = [dict(id=e.id, section=e.section, sub=e.sub, item=e.item, link=e.link)
+               for e in entries_]
 
     results = {}
     urls = {}

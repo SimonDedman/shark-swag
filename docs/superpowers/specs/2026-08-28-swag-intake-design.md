@@ -128,8 +128,11 @@ Per URL, reusing `harvest.py`'s fetcher and its `images/htmlcache/` cache:
 - NGO wording: sentences matching `donat|proceeds|% of|charity|conservation|
   non-?profit|foundation`, captured verbatim, never paraphrased. Absence gives
   an empty cell, not a claim that the item has no charity link.
-- image candidates: the existing candidate extractor, appended to
-  `images/candidates.json` under the new entry's id.
+- image candidates: the existing candidate extractor, kept on the queue row
+  itself rather than appended to `images/candidates.json`. The submission has
+  no entry id until it is accepted, and `candidates.json` is keyed by entry, so
+  there is nothing yet to file them under; they move into the pipeline's own
+  files when the row is applied.
 
 Only responses with status 200 are written to the HTML cache, so a transient
 block never becomes permanent.

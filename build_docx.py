@@ -14,35 +14,17 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 from docx.shared import Pt, RGBColor
 
-ROOT = Path("/home/simon/Projects/shark-swag")
+from paths import ROOT, DOCX
+import entries
+
 DOC_URL = "https://docs.google.com/document/d/13DY4w0BPnldO8Zj7Ztq53U872CuVjLob-wtmxo6iWbE/edit"
 
-# Entries already present in the Google Doc, reproduced in place so coverage is visible.
-EXISTING = {
-    ("1", "Adult"): [dict(
-        item="SPHYRNAS — tees, hoodies, hats, accessories", age="Youth / Adult",
-        link="https://www.sphyrnas.com/products", price="$30-70",
-        desc="Great quality, small business, socially conscious, amazing people behind it!",
-        by="Jenny Bortoluzzi",
-        ngo="Some collections support specific orgs, in the past have included MISS for example.")],
-    ("3", "Kids"): [dict(
-        item="Sharks Preschool Activity Book", age="Kids",
-        link="https://a.co/d/0aaGljoi", price="$11.99 USD",
-        desc="Preschoolers will have fun sinking their teeth into shark exploration: tracing numbers and ABCs, "
-             "matching, mazes and spot-the-difference, plus what scientists wear underwater to study sharks.",
-        by="Chelsea Black (also the author)", ngo="")],
-    ("3", "Adult"): [dict(
-        item="Underwater Photography and Editing Ebooks", age="Adult",
-        link="https://www.gillianshark.com/ebooks",
-        price="AUD 59 (beginner), AUD 65 (advanced), AUD 99 (bundle)",
-        desc="Master underwater photography: from your first photo to your final edit.",
-        by="Gillian Shark", ngo="Gillian Shark (my own business)")],
-    ("5", "Kids"): [dict(
-        item="Colouring & Facts Book (currently only available as PDF)", age="Kids / Youth / Adult",
-        link="https://www.gillianshark.com/colouring-book", price="AUD 14",
-        desc="10 sharks to colour in and learn 3 facts per shark!",
-        by="Gillian Shark", ngo="Gillian Shark (my own business)")],
-}
+# Entries already present in the Google Doc, reproduced in place so coverage is
+# visible. They live in existing.json so entries.py and build_docx.py cannot
+# disagree about them.
+EXISTING = {}
+for _e in entries.load_existing():
+    EXISTING.setdefault((_e["section"], _e["sub"]), []).append(_e)
 
 BLUE = RGBColor(0x0B, 0x55, 0x94)
 GREY = RGBColor(0x66, 0x66, 0x66)
@@ -207,7 +189,7 @@ def main():
         p = doc.add_paragraph(line, style="List Bullet")
         p.paragraph_format.space_after = Pt(4)
 
-    out = ROOT / "shark-swag-suggestions.docx"
+    out = DOCX
     doc.save(out)
     print(f"{total} new entries + {sum(len(v) for v in EXISTING.values())} existing -> {out}")
 

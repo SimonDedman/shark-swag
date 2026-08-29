@@ -7,42 +7,48 @@
 
 Edited in place rather than rebuilt from build_docx.py so the manual wording
 changes already made in the Gaps section survive.
+
+Entries are matched to their ids by item name AND the section and subsection
+headings they sit under. Name alone was enough only while ids were positional:
+the document and the id list then happened to agree, so taking the lowest
+unused id for each name in document order was right by accident. Ids are now
+stable data, so a resubmitted item that already exists elsewhere in the guide
+would take a later id, meet the document's first occurrence of its name first,
+and shift every occurrence of that name onto the wrong pictures, while
+`missing` reported nothing because each name still resolved.
 """
-import copy, json, re, sys
-from pathlib import Path
+import copy, re, sys
 
 import docx
 from docx.shared import Pt, Inches, Emu
 from PIL import Image
 
-
-ROOT = Path("/media/simon/data/Projects/shark-swag")
-FIN = ROOT / "images" / "final"
-DOC = ROOT / "shark-swag-suggestions.docx"
+from entries import iter_entries
+from paths import FINAL, DOCX
 
 ROW_H_IN = 1.34          # 8 lines of 10.5pt Calibri at 1.15 line spacing
 MAX_ROW_W_IN = 6.4       # usable width inside the default 1in margins
 GAP_IN = 0.08
 
-
-def entry_key(order, existing_names):
-    """items.json order, with the four pre-existing doc entries appended -
-    the same order picks.py numbers them in."""
-    return order
+FLAG = re.compile(r"\s*\[(already in doc|splurge)\]\s*$")
 
 
-def build_order():
-    data = json.loads((ROOT / "items.json").read_text())
-    names = []
-    for s in data["sections"]:
-        for sub in s["subsections"]:
-            for it in sub["items"]:
-                names.append(it["item"])
-    names += ["SPHYRNAS — tees, hoodies, hats, accessories",
-              "Sharks Preschool Activity Book",
-              "Underwater Photography and Editing Ebooks",
-              "Colouring & Facts Book (currently only available as PDF)"]
-    return names
+def entry_index():
+    """(item name, section number, subsection name) to the ids that carry it.
+
+    build_docx.py writes a Heading 1 per section and a Heading 2 per
+    subsection, so the walk below always knows both while reading an entry.
+    Ids stay in id order within a key, and a key with more than one id is a
+    genuine ambiguity rather than an ordering to exploit.
+    """
+    mapping = {}
+    for e in sorted(iter_entries(), key=lambda e: int(e.id[1:])):
+        mapping.setdefault((e.item, e.section, e.sub), []).append(e.id)
+    return mapping
+
+
+def images_for(entry_id):
+    return sorted(FINAL.glob(f"{entry_id}_*.jpg"))
 
 
 def insert_after(paragraph, doc):
@@ -53,53 +59,59 @@ def insert_after(paragraph, doc):
     return docx.text.paragraph.Paragraph(new_p, paragraph._parent)
 
 
-def main():
-    names = build_order()
-    doc = docx.Document(DOC)
-    paras = doc.paragraphs
+def walk(paras):
+    """Every entry in the document as (head paragraph, NGO paragraph, section
+    number, subsection name). The NGO paragraph is None if the entry has none."""
+    found = []
+    section = sub = ""
+    for p in paras:
+        style = p.style.name if p.style is not None else ""
+        text = p.text
+        if style == "Heading 1":
+            section = text.split(".", 1)[0].strip()
+            sub = ""
+        elif style == "Heading 2":
+            sub = text.strip()
+        elif text.startswith("▸ "):
+            found.append([p, None, section, sub])
+        elif (text.startswith("NGO / proceeds to conservation?")
+              and found and found[-1][1] is None):
+            found[-1][1] = p
+    return found
 
-    # locate each entry: the "> name" paragraph and its NGO line
-    entries, i = [], 0
-    while i < len(paras):
-        t = paras[i].text
-        if t.startswith("▸ "):
-            head = paras[i]
-            j = i + 1
-            ngo = None
-            while j < len(paras) and not paras[j].text.startswith("▸ "):
-                if paras[j].text.startswith("NGO / proceeds to conservation?"):
-                    ngo = paras[j]
-                    break
-                j += 1
-            entries.append((head, ngo))
-            i = j
-        else:
-            i += 1
-    print(f"{len(entries)} entries found in the docx")
 
-    # match docx order to picks order by the item name on the heading line
-    name_to_idx = {}
-    for n, nm in enumerate(names, 1):
-        name_to_idx.setdefault(nm, []).append(n)
+def main(path=None, index=None):
+    path = path or DOCX
+    index = entry_index() if index is None else index
+    doc = docx.Document(path)
+    found = walk(doc.paragraphs)
+    print(f"{len(found)} entries found in the docx")
 
-    used, placed, missing, headings = set(), 0, [], 0
-    for head, ngo in entries:
-        raw = head.text[2:]
-        nm = re.sub(r"\s*\[(already in doc|splurge)\]\s*$", "", raw).strip()
+    used, placed, missing, ambiguous, headings = set(), 0, [], {}, 0
+    for head, ngo, section, sub in found:
+        name = FLAG.sub("", head.text[2:]).strip()
 
         head.style = doc.styles["Heading 3"]
         head.paragraph_format.space_before = Pt(10)
         head.paragraph_format.space_after = Pt(2)
         headings += 1
 
-        cands = [k for k in name_to_idx.get(nm, []) if k not in used]
+        key = (name, section, sub)
+        cands = [i for i in index.get(key, []) if i not in used]
         if not cands:
-            missing.append(nm)
+            missing.append(key)
             continue
-        idx = cands[0]
-        used.add(idx)
+        if len(cands) > 1:
+            # Two entries with the same name in the same subsection. Guessing
+            # here is how the wrong pictures got attached last time, so the run
+            # says so instead and leaves both without images.
+            ambiguous.setdefault(key, list(index[key]))
+            missing.append(key)
+            continue
+        entry_id = cands[0]
+        used.add(entry_id)
 
-        files = sorted(FIN.glob(f"e{idx:02d}_*.jpg"))
+        files = images_for(entry_id)
         if not files or ngo is None:
             continue
 
@@ -118,11 +130,17 @@ def main():
                                     height=Inches(ROW_H_IN * scale))
         placed += 1
 
-    doc.save(DOC)
+    doc.save(path)
     print(f"{headings} entry headings promoted to Heading 3")
     print(f"{placed} image rows inserted")
+    for key, ids in sorted(ambiguous.items()):
+        print(f"AMBIGUOUS: {key[0]!r} appears twice in section {key[1]} "
+              f"{key[2]!r} as {ids}; no images were placed for either. "
+              f"Rename one, or move it, so the pairing is decidable.")
     if missing:
-        print("unmatched entry names:", missing)
+        print("unmatched entries (name, section, subsection):", missing)
+    return dict(headings=headings, placed=placed, missing=missing,
+                ambiguous=ambiguous)
 
 
 if __name__ == "__main__":
