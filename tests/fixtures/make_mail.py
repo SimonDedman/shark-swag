@@ -50,6 +50,10 @@ CASES = {
         "</body></html>"),
 }
 
+# mail/no_message_id.eml is written by hand and deliberately not generated
+# here: msg() always sets a Message-ID, and the point of that fixture is a
+# message that carries none.
+
 if __name__ == "__main__":
     for name, m in CASES.items():
         (HERE / f"{name}.eml").write_bytes(bytes(m))

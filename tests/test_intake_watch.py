@@ -120,3 +120,86 @@ def test_catch_up_ignores_a_response_missing_the_body_key(isolated):
 
     client = EmptyClient(b"")
     assert intake_watch.catch_up(client) == 0
+
+
+# --- Important 5: a message with no Message-ID short-circuited the ledger
+# check and was staged again by every catch-up, every IDLE response, and every
+# six-hourly sweep, re-fetching the URL and re-downloading images each time. ---
+
+def test_a_message_with_no_message_id_is_staged_once(isolated):
+    raw = (MAIL / "no_message_id.eml").read_bytes()
+    assert len(intake_watch.process_message(raw)) == 1
+    assert intake_watch.process_message(raw) == []
+    assert intake_watch.process_message(raw) == []
+    assert len(json.loads((isolated / "queue.json").read_text())) == 1
+
+
+def test_the_synthetic_ledger_key_is_not_the_empty_string(isolated):
+    raw = (MAIL / "no_message_id.eml").read_bytes()
+    intake_watch.process_message(raw)
+    keys = list(json.loads((isolated / "ledger.json").read_text()))
+    assert keys != [""]
+    assert keys[0].startswith("sha1:")
+
+
+def test_the_synthetic_key_is_stable_across_passes(isolated):
+    raw = (MAIL / "no_message_id.eml").read_bytes()
+    import intake_parse
+    a = intake_watch.message_key(intake_parse.parse_message(raw), raw)
+    b = intake_watch.message_key(intake_parse.parse_message(raw), raw)
+    assert a == b
+
+
+def test_a_real_message_id_is_still_preferred(isolated):
+    raw = (MAIL / "bare_url.eml").read_bytes()
+    import intake_parse
+    assert intake_watch.message_key(intake_parse.parse_message(raw), raw) == \
+        "bare1@mail.gmail.com"
+
+
+def test_two_headerless_messages_do_not_collide(isolated):
+    a = (MAIL / "no_message_id.eml").read_bytes()
+    b = a.replace(b"headerless-shark", b"headerless-whale")
+    assert len(intake_watch.process_message(a)) == 1
+    assert len(intake_watch.process_message(b)) == 1
+
+
+# --- Minor: credentials() raised SystemExit, which watch()'s except Exception
+# does not catch, so a missing env var became a 30-second systemd restart loop
+# with the reason only in the journal. ---
+
+def test_missing_credentials_fail_once_with_a_no_restart_exit_code(isolated, monkeypatch, tmp_path):
+    env = tmp_path / "empty.env"
+    env.write_text("# nothing useful here\n")
+    monkeypatch.setattr(intake_watch, "ENV_FILE", env)
+    with pytest.raises(SystemExit) as exc:
+        intake_watch.watch()
+    assert exc.value.code == intake_watch.EXIT_CONFIG
+    assert str(env) in (isolated / "intake.log").read_text()
+
+
+def test_an_unreadable_env_file_is_the_same_failure(isolated, monkeypatch, tmp_path):
+    monkeypatch.setattr(intake_watch, "ENV_FILE", tmp_path / "does-not-exist.env")
+    with pytest.raises(SystemExit) as exc:
+        intake_watch.watch()
+    assert exc.value.code == intake_watch.EXIT_CONFIG
+
+
+def test_credentials_never_reach_the_log(isolated, monkeypatch, tmp_path):
+    env = tmp_path / "half.env"
+    env.write_text("GMAIL_ADDRESS=someone@example.com\n")
+    monkeypatch.setattr(intake_watch, "ENV_FILE", env)
+    with pytest.raises(SystemExit):
+        intake_watch.watch()
+    assert "someone@example.com" not in (isolated / "intake.log").read_text()
+
+
+# --- Critical 1: an unreadable state file is not one message's problem, so it
+# must reach watch() rather than be logged once per message forever. ---
+
+def test_catch_up_does_not_swallow_a_corrupt_state_file(isolated, monkeypatch):
+    import intake_queue
+    (isolated / "queue.json").write_text('[{"queue_id": "q0001"}, {"que')
+    client = _FakeClient((MAIL / "bare_url.eml").read_bytes())
+    with pytest.raises(intake_queue.CorruptStateError):
+        intake_watch.catch_up(client)
