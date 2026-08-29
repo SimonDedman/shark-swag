@@ -1,0 +1,50 @@
+[
+  {
+    "id": "e85",
+    "section": "1",
+    "sub": "Adult",
+    "item": "SPHYRNAS — tees, hoodies, hats, accessories",
+    "age": "Youth / Adult",
+    "link": "https://www.sphyrnas.com/products",
+    "price": "$30-70",
+    "desc": "Great quality, small business, socially conscious, amazing people behind it!",
+    "by": "Jenny Bortoluzzi",
+    "ngo": "Some collections support specific orgs, in the past have included MISS for example."
+  },
+  {
+    "id": "e86",
+    "section": "3",
+    "sub": "Kids",
+    "item": "Sharks Preschool Activity Book",
+    "age": "Kids",
+    "link": "https://a.co/d/0aaGljoi",
+    "price": "$11.99 USD",
+    "desc": "Preschoolers will have fun sinking their teeth into shark exploration: tracing numbers and ABCs, matching, mazes and spot-the-difference, plus what scientists wear underwater to study sharks.",
+    "by": "Chelsea Black (also the author)",
+    "ngo": ""
+  },
+  {
+    "id": "e87",
+    "section": "3",
+    "sub": "Adult",
+    "item": "Underwater Photography and Editing Ebooks",
+    "age": "Adult",
+    "link": "https://www.gillianshark.com/ebooks",
+    "price": "AUD 59 (beginner), AUD 65 (advanced), AUD 99 (bundle)",
+    "desc": "Master underwater photography: from your first photo to your final edit.",
+    "by": "Gillian Shark",
+    "ngo": "Gillian Shark (my own business)"
+  },
+  {
+    "id": "e88",
+    "section": "5",
+    "sub": "Kids",
+    "item": "Colouring & Facts Book (currently only available as PDF)",
+    "age": "Kids / Youth / Adult",
+    "link": "https://www.gillianshark.com/colouring-book",
+    "price": "AUD 14",
+    "desc": "10 sharks to colour in and learn 3 facts per shark!",
+    "by": "Gillian Shark",
+    "ngo": "Gillian Shark (my own business)"
+  }
+]

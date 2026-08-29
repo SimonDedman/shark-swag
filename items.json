@@ -14,39 +14,39 @@
         {
           "name": "Baby & Toddler",
           "items": [
-            {"item": "Lemon shark organic cotton onesie (Lucky Bug Clothing Co.)", "age": "Baby & Toddler", "link": "https://luckybugclothing.com/products/shark-onesie", "price": "~$28", "desc": "Made in New York from organic cotton, and the lemon shark print is a direct Sharks4Kids collaboration — rare to find species accuracy on a babygro.", "ngo": "10% of all lemon shark print sales go to Sharks4Kids (shark conservation and education)"},
-            {"item": "Great white shark organic cotton baby bodysuit (PADI Gear)", "age": "Baby & Toddler", "link": "https://www.padigear.com/products/great-white-shark-organic-cotton-baby-onesie", "price": "~$25", "desc": "\"Sharks are jawesome\" print on 100% organic cotton; the obvious gift for diver parents.", "ngo": "Not stated on the product page (PADI's charity is the PADI AWARE Foundation, but no donation is claimed for this item)"},
-            {"item": "Infant shark onesie (Shedd Aquarium shop)", "age": "Baby & Toddler", "link": "https://shop.sheddaquarium.org/search?q=shark+onesie", "price": "~$22", "desc": "Combed organic cotton from an accredited public aquarium's own store; stock rotates, so the search link is the durable one.", "ngo": "Shedd Aquarium (non-profit — store proceeds support the aquarium)"}
+            {"id": "e01", "item": "Lemon shark organic cotton onesie (Lucky Bug Clothing Co.)", "age": "Baby & Toddler", "link": "https://luckybugclothing.com/products/shark-onesie", "price": "~$28", "desc": "Made in New York from organic cotton, and the lemon shark print is a direct Sharks4Kids collaboration — rare to find species accuracy on a babygro.", "ngo": "10% of all lemon shark print sales go to Sharks4Kids (shark conservation and education)"},
+            {"id": "e02", "item": "Great white shark organic cotton baby bodysuit (PADI Gear)", "age": "Baby & Toddler", "link": "https://www.padigear.com/products/great-white-shark-organic-cotton-baby-onesie", "price": "~$25", "desc": "\"Sharks are jawesome\" print on 100% organic cotton; the obvious gift for diver parents.", "ngo": "Not stated on the product page (PADI's charity is the PADI AWARE Foundation, but no donation is claimed for this item)"},
+            {"id": "e03", "item": "Infant shark onesie (Shedd Aquarium shop)", "age": "Baby & Toddler", "link": "https://shop.sheddaquarium.org/search?q=shark+onesie", "price": "~$22", "desc": "Combed organic cotton from an accredited public aquarium's own store; stock rotates, so the search link is the durable one.", "ngo": "Shedd Aquarium (non-profit — store proceeds support the aquarium)"}
           ]
         },
         {
           "name": "Kids",
           "items": [
-            {"item": "Kids' organic cotton shark tees and long sleeves (Shark Trust)", "age": "Kids", "link": "https://sharktrustclothing.com/collection/kids-t-shirts-long-sleeves/", "price": "£18–25 (~$23–32)", "desc": "Organic cotton, printed to order in a renewable-energy UK factory, so nothing is made until it's bought — and the species artwork is actually correct.", "ngo": "The Shark Trust"},
-            {"item": "Sharks4Kids apparel range (Redbubble)", "age": "Kids", "link": "https://www.redbubble.com/people/sharks4kids/shop", "price": "$20–40", "desc": "Tees, hoodies and leggings in designs made with Sharktopia; the same artwork also comes as cheap stickers if you want a stocking filler.", "ngo": "Sharks4Kids (proceeds fund their education and outreach programmes)"},
-            {"item": "\"Sharks are older than trees\" youth tee (Fin Pin Shop)", "age": "Kids", "link": "https://finpinshop.com/", "price": "$20", "desc": "The single best shark fact, worn as a shirt. Run by marine biologists, so the merch reads like it was written by someone in the field.", "ngo": "Fin Pin Shop states purchases support wildlife conservation and scientific research (percentage not published)"}
+            {"id": "e04", "item": "Kids' organic cotton shark tees and long sleeves (Shark Trust)", "age": "Kids", "link": "https://sharktrustclothing.com/collection/kids-t-shirts-long-sleeves/", "price": "£18–25 (~$23–32)", "desc": "Organic cotton, printed to order in a renewable-energy UK factory, so nothing is made until it's bought — and the species artwork is actually correct.", "ngo": "The Shark Trust"},
+            {"id": "e05", "item": "Sharks4Kids apparel range (Redbubble)", "age": "Kids", "link": "https://www.redbubble.com/people/sharks4kids/shop", "price": "$20–40", "desc": "Tees, hoodies and leggings in designs made with Sharktopia; the same artwork also comes as cheap stickers if you want a stocking filler.", "ngo": "Sharks4Kids (proceeds fund their education and outreach programmes)"},
+            {"id": "e06", "item": "\"Sharks are older than trees\" youth tee (Fin Pin Shop)", "age": "Kids", "link": "https://finpinshop.com/", "price": "$20", "desc": "The single best shark fact, worn as a shirt. Run by marine biologists, so the merch reads like it was written by someone in the field.", "ngo": "Fin Pin Shop states purchases support wildlife conservation and scientific research (percentage not published)"}
           ]
         },
         {
           "name": "Youth",
           "items": [
-            {"item": "MISS logo tees, hoodies and sticker packs (Minorities in Shark Sciences)", "age": "Youth", "link": "https://www.redbubble.com/people/misselasmo/shop", "price": "Stickers ~$3, tees ~$25, hoodies ~$45", "desc": "Wearing this says something. The annual Shark Madness sticker collections are the pick if you want something small and collectable.", "ngo": "Minorities in Shark Sciences (MISS)"},
-            {"item": "OCEARCH tees and caps", "age": "Youth", "link": "https://shop.ocearch.org/collections/all", "price": "$29.99–39.99", "desc": "Instantly recognisable to anyone who has ever followed a tagged white shark on the tracker; the Jawbone and Don't Fear designs are the strongest.", "ngo": "OCEARCH (funds shark research, tracking and free education programmes)"},
-            {"item": "Save the Sharks bamboo socks (Bare Kind)", "age": "Youth", "link": "https://barekind.com/products/save-the-sharks-bamboo-socks", "price": "£12–14 (~$16–18)", "desc": "Bamboo, comfortable, and the packaging carries the conservation story — a good low-stakes gift for someone who already owns enough shirts.", "ngo": "10% of profits to a shark conservation charity (Bare Kind partner: Love The Oceans). UK seller, ships internationally"}
+            {"id": "e07", "item": "MISS logo tees, hoodies and sticker packs (Minorities in Shark Sciences)", "age": "Youth", "link": "https://www.redbubble.com/people/misselasmo/shop", "price": "Stickers ~$3, tees ~$25, hoodies ~$45", "desc": "Wearing this says something. The annual Shark Madness sticker collections are the pick if you want something small and collectable.", "ngo": "Minorities in Shark Sciences (MISS)"},
+            {"id": "e08", "item": "OCEARCH tees and caps", "age": "Youth", "link": "https://shop.ocearch.org/collections/all", "price": "$29.99–39.99", "desc": "Instantly recognisable to anyone who has ever followed a tagged white shark on the tracker; the Jawbone and Don't Fear designs are the strongest.", "ngo": "OCEARCH (funds shark research, tracking and free education programmes)"},
+            {"id": "e09", "item": "Save the Sharks bamboo socks (Bare Kind)", "age": "Youth", "link": "https://barekind.com/products/save-the-sharks-bamboo-socks", "price": "£12–14 (~$16–18)", "desc": "Bamboo, comfortable, and the packaging carries the conservation story — a good low-stakes gift for someone who already owns enough shirts.", "ngo": "10% of profits to a shark conservation charity (Bare Kind partner: Love The Oceans). UK seller, ships internationally"}
           ]
         },
         {
           "name": "Adult",
           "items": [
-            {"item": "Socks that Protect Sharks (Conscious Step)", "age": "Adult", "link": "https://consciousstep.com/products/socks-that-protect-sharks-gray", "price": "~$15", "desc": "Fairtrade, GOTS and vegan certified, with the donation baked into the price rather than bolted on.", "ngo": "$1 per pair to Oceana"},
-            {"item": "Socks that Protect Whale Sharks (Conscious Step)", "age": "Adult", "link": "https://consciousstep.com/products/socks-that-protect-whale-sharks", "price": "~$15", "desc": "Same deal, spotted variant. Buy both and you've solved two colleagues at once.", "ngo": "$1 per pair to Oceana"},
-            {"item": "Great white shark necklace (Cape Clasp)", "age": "Adult", "link": "https://www.capeclasp.com/products/great-white-shark-necklace", "price": "$39.99", "desc": "Sterling silver charm on a 20\" adjustable chain, made in collaboration with the Atlantic White Shark Conservancy — subtle enough for the office.", "ngo": "15% of profits to the Atlantic White Shark Conservancy"},
-            {"item": "Hammerhead, whale shark and thresher jewellery range (Cape Clasp)", "age": "Adult", "link": "https://www.capeclasp.com/collections/sharks", "price": "Bracelets from $39.99, rings $44.99–84.99, cuffs from $79.99", "desc": "The widest species range in shark jewellery: hammerhead, great white, whale shark, thresher, manta, and a mermaid's purse cuff for the egg-case nerds.", "ngo": "15% of profits to marine non-profits"},
-            {"item": "Bimini Shark Lab apparel", "age": "Adult", "link": "https://www.biminisharklab.com/sharkshop", "price": "$25–60", "desc": "Hats, tees, tanks and hoodies from the field station a lot of us trained at. Note: the classic logo apparel is Bimini-only — the online shop carries the rest.", "ngo": "100% of funds raised go to the Bimini Biological Field Station Foundation"},
-            {"item": "Shark Trust adult clothing (organic, print-on-demand)", "age": "Adult", "link": "https://sharktrustclothing.com/", "price": "£22–45 (~$28–58)", "desc": "Tees, sweatshirts, hoodies and totes in organic cotton, made to order in a renewable-energy factory. Returnable to be remade when worn out.", "ngo": "The Shark Trust"},
-            {"item": "Sharks4Kids official merch (Bonfire)", "age": "Adult", "link": "https://www.bonfire.com/store/sharks4kids/", "price": "$25–35", "desc": "Campaign-based drops rather than a permanent range, so worth checking what's live before December.", "ngo": "Sharks4Kids"},
-            {"item": "Atlantic White Shark Conservancy limited-edition merch (Bonfire)", "age": "Adult", "link": "https://www.bonfire.com/store/atlantic-white-shark-conservancy/", "price": "$25–35", "desc": "Limited runs funding white shark research, public safety and education on Cape Cod.", "ngo": "Atlantic White Shark Conservancy"},
-            {"item": "Whale shark crop hoodie and enamel pins (Fin Pin Shop)", "age": "Adult", "link": "https://finpinshop.com/", "price": "Hoodie $48, pins $12, stickers $5", "desc": "Marine-biologist-run; the pins and stickers are the cheapest way to give someone something that is unmistakably theirs.", "ngo": "States that purchases support wildlife conservation and scientific research (percentage not published)"}
+            {"id": "e10", "item": "Socks that Protect Sharks (Conscious Step)", "age": "Adult", "link": "https://consciousstep.com/products/socks-that-protect-sharks-gray", "price": "~$15", "desc": "Fairtrade, GOTS and vegan certified, with the donation baked into the price rather than bolted on.", "ngo": "$1 per pair to Oceana"},
+            {"id": "e11", "item": "Socks that Protect Whale Sharks (Conscious Step)", "age": "Adult", "link": "https://consciousstep.com/products/socks-that-protect-whale-sharks", "price": "~$15", "desc": "Same deal, spotted variant. Buy both and you've solved two colleagues at once.", "ngo": "$1 per pair to Oceana"},
+            {"id": "e12", "item": "Great white shark necklace (Cape Clasp)", "age": "Adult", "link": "https://www.capeclasp.com/products/great-white-shark-necklace", "price": "$39.99", "desc": "Sterling silver charm on a 20\" adjustable chain, made in collaboration with the Atlantic White Shark Conservancy — subtle enough for the office.", "ngo": "15% of profits to the Atlantic White Shark Conservancy"},
+            {"id": "e13", "item": "Hammerhead, whale shark and thresher jewellery range (Cape Clasp)", "age": "Adult", "link": "https://www.capeclasp.com/collections/sharks", "price": "Bracelets from $39.99, rings $44.99–84.99, cuffs from $79.99", "desc": "The widest species range in shark jewellery: hammerhead, great white, whale shark, thresher, manta, and a mermaid's purse cuff for the egg-case nerds.", "ngo": "15% of profits to marine non-profits"},
+            {"id": "e14", "item": "Bimini Shark Lab apparel", "age": "Adult", "link": "https://www.biminisharklab.com/sharkshop", "price": "$25–60", "desc": "Hats, tees, tanks and hoodies from the field station a lot of us trained at. Note: the classic logo apparel is Bimini-only — the online shop carries the rest.", "ngo": "100% of funds raised go to the Bimini Biological Field Station Foundation"},
+            {"id": "e15", "item": "Shark Trust adult clothing (organic, print-on-demand)", "age": "Adult", "link": "https://sharktrustclothing.com/", "price": "£22–45 (~$28–58)", "desc": "Tees, sweatshirts, hoodies and totes in organic cotton, made to order in a renewable-energy factory. Returnable to be remade when worn out.", "ngo": "The Shark Trust"},
+            {"id": "e16", "item": "Sharks4Kids official merch (Bonfire)", "age": "Adult", "link": "https://www.bonfire.com/store/sharks4kids/", "price": "$25–35", "desc": "Campaign-based drops rather than a permanent range, so worth checking what's live before December.", "ngo": "Sharks4Kids"},
+            {"id": "e17", "item": "Atlantic White Shark Conservancy limited-edition merch (Bonfire)", "age": "Adult", "link": "https://www.bonfire.com/store/atlantic-white-shark-conservancy/", "price": "$25–35", "desc": "Limited runs funding white shark research, public safety and education on Cape Cod.", "ngo": "Atlantic White Shark Conservancy"},
+            {"id": "e18", "item": "Whale shark crop hoodie and enamel pins (Fin Pin Shop)", "age": "Adult", "link": "https://finpinshop.com/", "price": "Hoodie $48, pins $12, stickers $5", "desc": "Marine-biologist-run; the pins and stickers are the cheapest way to give someone something that is unmistakably theirs.", "ngo": "States that purchases support wildlife conservation and scientific research (percentage not published)"}
           ]
         }
       ]
@@ -60,34 +60,34 @@
           "name": "Baby & Toddler",
           "hint": "(plush, bath toys, soft figures)",
           "items": [
-            {"item": "White shark ecokin plush, 12\" (Monterey Bay Aquarium)", "age": "Baby & Toddler", "link": "https://shop.montereybayaquarium.org/products/great-white-shark-plush-ecokin-12-quot", "price": "$26.99", "desc": "Fabric and fill are 100% recycled PET — sixteen water bottles per shark — and the proportions are actually right.", "ngo": "Monterey Bay Aquarium (non-profit)"},
-            {"item": "Mako shark plush, 15\" (Monterey Bay Aquarium)", "age": "Baby & Toddler", "link": "https://shop.montereybayaquarium.org/products/mako-shark-plush-15-in", "price": "~$29", "desc": "Also 100% recycled bottles. A mako rather than yet another great white, which is half the appeal.", "ngo": "Monterey Bay Aquarium (non-profit)"},
-            {"item": "Whale shark plush, 20\" (Wild Republic)", "age": "Baby & Toddler", "link": "https://wildrepublic.com/products/whale-shark-stuffed-animal-20", "price": "~$25", "desc": "Big, soft, and spotted in roughly the right pattern; meets CPSIA and EN71 safety standards so it's safe for the very small.", "ngo": "Not stated (commercial)"},
-            {"item": "Cuddlekins mako shark, 15\" (Wild Republic)", "age": "Baby & Toddler", "link": "https://wildrepublic.com/products/mako-shark-stuffed-animal-15", "price": "~$20", "desc": "The washing-machine-survivor tier of plush. Also available as great white and blacktip.", "ngo": "Not stated (commercial)"},
-            {"item": "OCEARCH plushie", "age": "Baby & Toddler", "link": "https://shop.ocearch.org/collections/all", "price": "$29.99", "desc": "A cuddly white shark whose purchase funds the tracking of real ones.", "ngo": "OCEARCH"}
+            {"id": "e19", "item": "White shark ecokin plush, 12\" (Monterey Bay Aquarium)", "age": "Baby & Toddler", "link": "https://shop.montereybayaquarium.org/products/great-white-shark-plush-ecokin-12-quot", "price": "$26.99", "desc": "Fabric and fill are 100% recycled PET — sixteen water bottles per shark — and the proportions are actually right.", "ngo": "Monterey Bay Aquarium (non-profit)"},
+            {"id": "e20", "item": "Mako shark plush, 15\" (Monterey Bay Aquarium)", "age": "Baby & Toddler", "link": "https://shop.montereybayaquarium.org/products/mako-shark-plush-15-in", "price": "~$29", "desc": "Also 100% recycled bottles. A mako rather than yet another great white, which is half the appeal.", "ngo": "Monterey Bay Aquarium (non-profit)"},
+            {"id": "e21", "item": "Whale shark plush, 20\" (Wild Republic)", "age": "Baby & Toddler", "link": "https://wildrepublic.com/products/whale-shark-stuffed-animal-20", "price": "~$25", "desc": "Big, soft, and spotted in roughly the right pattern; meets CPSIA and EN71 safety standards so it's safe for the very small.", "ngo": "Not stated (commercial)"},
+            {"id": "e22", "item": "Cuddlekins mako shark, 15\" (Wild Republic)", "age": "Baby & Toddler", "link": "https://wildrepublic.com/products/mako-shark-stuffed-animal-15", "price": "~$20", "desc": "The washing-machine-survivor tier of plush. Also available as great white and blacktip.", "ngo": "Not stated (commercial)"},
+            {"id": "e23", "item": "OCEARCH plushie", "age": "Baby & Toddler", "link": "https://shop.ocearch.org/collections/all", "price": "$29.99", "desc": "A cuddly white shark whose purchase funds the tracking of real ones.", "ngo": "OCEARCH"}
           ]
         },
         {
           "name": "Kids",
           "hint": "(figurines, puzzles, board games, playsets)",
           "items": [
-            {"item": "Sharks TOOB — 11 mini figurines (Safari Ltd.)", "age": "Kids", "link": "https://www.safariltd.com/products/toobs-sharks-figurines-697104", "price": "$14.99", "desc": "Eleven hand-painted species in one tube — great white, whale, tiger, hammerhead, mako and an eagle ray — for the price of one plush. Best value on this list.", "ngo": "Not stated (commercial)"},
-            {"item": "LEGO Creator 3-in-1 shark sets", "age": "Kids", "link": "https://www.lego.com/en-us/categories/animals/wild-animals/sharks", "price": "$30–40", "desc": "The current Fierce Shark with a Treasure Chest (31381, 379 pieces, 8+) rebuilds into an anglerfish or a manta ray. Category link given because set numbers retire.", "ngo": "Not stated (commercial)"},
-            {"item": "Shark tooth fossil dig kit (National Geographic)", "age": "Kids", "link": "https://www.amazon.com/National-Geographic-Shark-Tooth-Dig/dp/B0GKLT6MHN", "price": "~$20", "desc": "Chisel a brick apart to excavate replica teeth, then string one as a necklace. Chisel, brush and magnifier included; ages 6+.", "ngo": "Not stated (commercial)"},
-            {"item": "Mini fossil dig set with real shark teeth, 2-pack (Discovery #MINDBLOWN)", "age": "Kids", "link": "https://us.amazon.com/Discovery-Interactive-Archaeology-Paleontology-Kids/dp/B08HX957FG", "price": "~$20", "desc": "Genuine fossil teeth rather than replicas, and every one is different — which is the bit children actually care about.", "ngo": "Not stated (commercial)"},
-            {"item": "Mission Ocean cooperative board game (Adventerra Games)", "age": "Kids", "link": "https://www.amazon.com/Adventerra-Games-Cooperative-Recycled-Materials/dp/B0BMQRD2PG", "price": "~$25", "desc": "Cooperative rather than competitive, playable from about four, and built from recycled materials. Ocean plastic is the theme.", "ngo": "Part of proceeds to The Ocean Cleanup"},
-            {"item": "Sharkopoly board game", "age": "Kids", "link": "https://store.welovesharks.org/products/sharkopoly-board-game", "price": "~$35", "desc": "Twenty-two species, each with its own profile card of facts. It is exactly what the name suggests, which is the point.", "ngo": "Not stated — seller is a commercial shark-content site, not a registered charity"}
+            {"id": "e24", "item": "Sharks TOOB — 11 mini figurines (Safari Ltd.)", "age": "Kids", "link": "https://www.safariltd.com/products/toobs-sharks-figurines-697104", "price": "$14.99", "desc": "Eleven hand-painted species in one tube — great white, whale, tiger, hammerhead, mako and an eagle ray — for the price of one plush. Best value on this list.", "ngo": "Not stated (commercial)"},
+            {"id": "e25", "item": "LEGO Creator 3-in-1 shark sets", "age": "Kids", "link": "https://www.lego.com/en-us/categories/animals/wild-animals/sharks", "price": "$30–40", "desc": "The current Fierce Shark with a Treasure Chest (31381, 379 pieces, 8+) rebuilds into an anglerfish or a manta ray. Category link given because set numbers retire.", "ngo": "Not stated (commercial)"},
+            {"id": "e26", "item": "Shark tooth fossil dig kit (National Geographic)", "age": "Kids", "link": "https://www.amazon.com/National-Geographic-Shark-Tooth-Dig/dp/B0GKLT6MHN", "price": "~$20", "desc": "Chisel a brick apart to excavate replica teeth, then string one as a necklace. Chisel, brush and magnifier included; ages 6+.", "ngo": "Not stated (commercial)"},
+            {"id": "e27", "item": "Mini fossil dig set with real shark teeth, 2-pack (Discovery #MINDBLOWN)", "age": "Kids", "link": "https://us.amazon.com/Discovery-Interactive-Archaeology-Paleontology-Kids/dp/B08HX957FG", "price": "~$20", "desc": "Genuine fossil teeth rather than replicas, and every one is different — which is the bit children actually care about.", "ngo": "Not stated (commercial)"},
+            {"id": "e28", "item": "Mission Ocean cooperative board game (Adventerra Games)", "age": "Kids", "link": "https://www.amazon.com/Adventerra-Games-Cooperative-Recycled-Materials/dp/B0BMQRD2PG", "price": "~$25", "desc": "Cooperative rather than competitive, playable from about four, and built from recycled materials. Ocean plastic is the theme.", "ngo": "Part of proceeds to The Ocean Cleanup"},
+            {"id": "e29", "item": "Sharkopoly board game", "age": "Kids", "link": "https://store.welovesharks.org/products/sharkopoly-board-game", "price": "~$35", "desc": "Twenty-two species, each with its own profile card of facts. It is exactly what the name suggests, which is the point.", "ngo": "Not stated — seller is a commercial shark-content site, not a registered charity"}
           ]
         },
         {
           "name": "Youth",
           "hint": "(strategy games, models, collectibles)",
           "items": [
-            {"item": "4D Vision great white shark anatomy model", "age": "Youth", "link": "https://www.amazon.com/Vision-Great-White-Shark-Anatomy/dp/B001YIT1YI", "price": "$16–25", "desc": "13\" model, 20 detachable organs and a display stand, with an anatomy guide. The closest thing to a dissection that lives on a shelf.", "ngo": "Not stated (commercial)"},
-            {"item": "Oceans (North Star Games)", "age": "Youth", "link": "https://www.northstargames.com/products/oceans", "price": "~$60 — splurge", "desc": "A serious strategy game about evolving marine species, designed with a marine biologist and painted in watercolour by Catherine Hamilton. Top 1% on BoardGameGeek. Ages 12+, 60–90 minutes.", "ngo": "Not stated (commercial)"},
-            {"item": "\"Ray of Hope\" 1000-piece jigsaw (Shark Trust)", "age": "Youth", "link": "https://sharktrustclothing.com/product/ray-of-hope-1000-piece-jigsaw/", "price": "~£20 (~$26)", "desc": "Caribbean reef sharks, 1000 pieces, and the money goes somewhere useful.", "ngo": "The Shark Trust"},
-            {"item": "OCEARCH 1000-piece puzzle", "age": "Youth", "link": "https://shop.ocearch.org/collections/all", "price": "$24.99", "desc": "Same idea, different charity, and it pairs well with the tracker app on a rainy afternoon.", "ngo": "OCEARCH"},
-            {"item": "Sharks 1000-piece jigsaw (Eurographics)", "age": "Youth", "link": "https://www.puzzlewarehouse.com/sharks-1000-pieces-by-eurographics/", "price": "~$18", "desc": "Over 25 species laid out as an identification plate — you finish the puzzle and you've learnt the sharks.", "ngo": "Not stated (commercial)"}
+            {"id": "e30", "item": "4D Vision great white shark anatomy model", "age": "Youth", "link": "https://www.amazon.com/Vision-Great-White-Shark-Anatomy/dp/B001YIT1YI", "price": "$16–25", "desc": "13\" model, 20 detachable organs and a display stand, with an anatomy guide. The closest thing to a dissection that lives on a shelf.", "ngo": "Not stated (commercial)"},
+            {"id": "e31", "item": "Oceans (North Star Games)", "age": "Youth", "link": "https://www.northstargames.com/products/oceans", "price": "~$60 — splurge", "desc": "A serious strategy game about evolving marine species, designed with a marine biologist and painted in watercolour by Catherine Hamilton. Top 1% on BoardGameGeek. Ages 12+, 60–90 minutes.", "ngo": "Not stated (commercial)"},
+            {"id": "e32", "item": "\"Ray of Hope\" 1000-piece jigsaw (Shark Trust)", "age": "Youth", "link": "https://sharktrustclothing.com/product/ray-of-hope-1000-piece-jigsaw/", "price": "~£20 (~$26)", "desc": "Caribbean reef sharks, 1000 pieces, and the money goes somewhere useful.", "ngo": "The Shark Trust"},
+            {"id": "e33", "item": "OCEARCH 1000-piece puzzle", "age": "Youth", "link": "https://shop.ocearch.org/collections/all", "price": "$24.99", "desc": "Same idea, different charity, and it pairs well with the tracker app on a rainy afternoon.", "ngo": "OCEARCH"},
+            {"id": "e34", "item": "Sharks 1000-piece jigsaw (Eurographics)", "age": "Youth", "link": "https://www.puzzlewarehouse.com/sharks-1000-pieces-by-eurographics/", "price": "~$18", "desc": "Over 25 species laid out as an identification plate — you finish the puzzle and you've learnt the sharks.", "ngo": "Not stated (commercial)"}
           ]
         }
       ]
@@ -101,38 +101,38 @@
           "name": "Baby & Toddler",
           "hint": "(board books, picture books)",
           "items": [
-            {"item": "Shark Block — Christopher Franceschelli", "age": "Baby & Toddler", "link": "https://www.amazon.com/Shark-Block-Christopher-Franceschelli/dp/1419719203", "price": "~$12", "desc": "Chunky die-cut board book with fold-out flaps introducing real species. Survives being chewed, which is the operative test.", "ngo": "Not applicable (trade publisher)"},
-            {"item": "Good Night Sharks", "age": "Baby & Toddler", "link": "https://www.amazon.com/s?k=Good+Night+Sharks+board+book", "price": "~$10", "desc": "Bedtime book covering white, whale, bull and angel sharks — an unusually broad species list for ages 2–5.", "ngo": "Not applicable (trade publisher)"}
+            {"id": "e35", "item": "Shark Block — Christopher Franceschelli", "age": "Baby & Toddler", "link": "https://www.amazon.com/Shark-Block-Christopher-Franceschelli/dp/1419719203", "price": "~$12", "desc": "Chunky die-cut board book with fold-out flaps introducing real species. Survives being chewed, which is the operative test.", "ngo": "Not applicable (trade publisher)"},
+            {"id": "e36", "item": "Good Night Sharks", "age": "Baby & Toddler", "link": "https://www.amazon.com/s?k=Good+Night+Sharks+board+book", "price": "~$10", "desc": "Bedtime book covering white, whale, bull and angel sharks — an unusually broad species list for ages 2–5.", "ngo": "Not applicable (trade publisher)"}
           ]
         },
         {
           "name": "Kids",
           "hint": "(early readers, illustrated non-fiction)",
           "items": [
-            {"item": "Shark Lady: How Eugenie Clark Became the Ocean's Most Fearless Scientist — Jess Keating", "age": "Kids", "link": "https://www.amazon.com/Shark-Lady-Eugenie-Fearless-Scientist/dp/1492642045", "price": "~$10 paperback, ~$18 hardcover", "desc": "The picture-book biography of Eugenie Clark. Named a Best STEM Book by the Children's Book Council and the NSTA, and the one book on this list most likely to produce another shark scientist.", "ngo": "Not applicable (trade publisher)"},
-            {"item": "Sharkpedia (2nd edition) — DK", "age": "Kids", "link": "https://dk.com/en-us/products/9781465463128-sharkpedia", "price": "~$17", "desc": "Scrapbook-style reference on anatomy, species, myth and media, with a conservation and take-action section added in the second edition. Grades 2–6.", "ngo": "Not applicable (trade publisher)"},
-            {"item": "Sharks4Kids colouring and activity books", "age": "Kids", "link": "https://www.sharks4kids.com/sharkshop", "price": "~$10–15", "desc": "Written by shark educators, including a Sharks of Florida colouring and activity book. Buying direct sends the money to the programme.", "ngo": "Sharks4Kids"}
+            {"id": "e37", "item": "Shark Lady: How Eugenie Clark Became the Ocean's Most Fearless Scientist — Jess Keating", "age": "Kids", "link": "https://www.amazon.com/Shark-Lady-Eugenie-Fearless-Scientist/dp/1492642045", "price": "~$10 paperback, ~$18 hardcover", "desc": "The picture-book biography of Eugenie Clark. Named a Best STEM Book by the Children's Book Council and the NSTA, and the one book on this list most likely to produce another shark scientist.", "ngo": "Not applicable (trade publisher)"},
+            {"id": "e38", "item": "Sharkpedia (2nd edition) — DK", "age": "Kids", "link": "https://dk.com/en-us/products/9781465463128-sharkpedia", "price": "~$17", "desc": "Scrapbook-style reference on anatomy, species, myth and media, with a conservation and take-action section added in the second edition. Grades 2–6.", "ngo": "Not applicable (trade publisher)"},
+            {"id": "e39", "item": "Sharks4Kids colouring and activity books", "age": "Kids", "link": "https://www.sharks4kids.com/sharkshop", "price": "~$10–15", "desc": "Written by shark educators, including a Sharks of Florida colouring and activity book. Buying direct sends the money to the programme.", "ngo": "Sharks4Kids"}
           ]
         },
         {
           "name": "Youth",
           "hint": "(middle-grade fiction, teen non-fiction, ID guides)",
           "items": [
-            {"item": "Sharks Don't Sink: Adventures of a Rogue Shark Scientist — Jasmin Graham", "age": "Youth", "link": "https://www.amazon.com/Sharks-Dont-Sink-Adventures-Scientist/dp/0593685253", "price": "~$19 paperback, ~$29 hardcover", "desc": "Memoir by a MISS co-founder on being a Black woman in shark science. The book to give a teenager who is being quietly discouraged from the field.", "ngo": "Not applicable (trade publisher) — author co-founded Minorities in Shark Sciences"},
-            {"item": "A Pocket Guide to Sharks of the World — Ebert, Fowler & Dando", "age": "Youth", "link": "https://press.princeton.edu/books/paperback/9780691218748/a-pocket-guide-to-sharks-of-the-world", "price": "~$18", "desc": "Every shark family in a book that fits in a jacket pocket, with Marc Dando's illustrations. A real ID guide at a teenager's price point.", "ngo": "Not applicable (university press)"},
-            {"item": "Shark Girl — Kelly Bingham", "age": "Youth", "link": "https://www.amazon.com/s?k=Shark+Girl+Kelly+Bingham", "price": "~$10", "desc": "YA novel in verse about a fifteen-year-old rebuilding her life after a shark bite. Fiction, and a useful counterweight to the monster framing.", "ngo": "Not applicable (trade publisher)"}
+            {"id": "e40", "item": "Sharks Don't Sink: Adventures of a Rogue Shark Scientist — Jasmin Graham", "age": "Youth", "link": "https://www.amazon.com/Sharks-Dont-Sink-Adventures-Scientist/dp/0593685253", "price": "~$19 paperback, ~$29 hardcover", "desc": "Memoir by a MISS co-founder on being a Black woman in shark science. The book to give a teenager who is being quietly discouraged from the field.", "ngo": "Not applicable (trade publisher) — author co-founded Minorities in Shark Sciences"},
+            {"id": "e41", "item": "A Pocket Guide to Sharks of the World — Ebert, Fowler & Dando", "age": "Youth", "link": "https://press.princeton.edu/books/paperback/9780691218748/a-pocket-guide-to-sharks-of-the-world", "price": "~$18", "desc": "Every shark family in a book that fits in a jacket pocket, with Marc Dando's illustrations. A real ID guide at a teenager's price point.", "ngo": "Not applicable (university press)"},
+            {"id": "e42", "item": "Shark Girl — Kelly Bingham", "age": "Youth", "link": "https://www.amazon.com/s?k=Shark+Girl+Kelly+Bingham", "price": "~$10", "desc": "YA novel in verse about a fifteen-year-old rebuilding her life after a shark bite. Fiction, and a useful counterweight to the monster framing.", "ngo": "Not applicable (trade publisher)"}
           ]
         },
         {
           "name": "Adult",
           "hint": "(field guides, popular science, coffee-table)",
           "items": [
-            {"item": "Why Sharks Matter — David Shiffman", "age": "Adult", "link": "https://www.amazon.com/Why-Sharks-Matter-Misunderstood-Predator/dp/1421443643", "price": "$24.95 hardcover", "desc": "The book to hand anyone who asks what you actually do all day, and the one that argues the conservation case without the doom.", "ngo": "Not applicable (Johns Hopkins University Press)"},
-            {"item": "Chasing Shadows: My Life Tracking the Great White Shark — Greg Skomal & Ret Talbot", "age": "Adult", "link": "https://www.amazon.com/Chasing-Shadows-Tracking-Great-White/dp/006309083X", "price": "~$20", "desc": "Skomal on the white shark's return to the eastern seaboard, and on doing science while the public panics.", "ngo": "Not applicable (trade publisher)"},
-            {"item": "Sharks of the World: A Complete Guide — Ebert, Dando & Fowler", "age": "Adult", "link": "https://press.princeton.edu/books/hardcover/9780691205991/sharks-of-the-world", "price": "$58 — splurge", "desc": "536 species, fully revised. The reference copy for a lab shelf rather than a coffee table.", "ngo": "Not applicable (Princeton University Press)"},
-            {"item": "Field Guide to Sharks, Rays & Chimaeras of Europe and the Mediterranean", "age": "Adult", "link": "https://press.princeton.edu/books/paperback/9780691205984/field-guide-to-sharks-rays-chimaeras-of-europe-and-the-mediterranean", "price": "~$35", "desc": "Regional guide for European colleagues and anyone working the Med.", "ngo": "Not applicable (Princeton University Press)"},
-            {"item": "Field Guide to Sharks, Rays and Chimaeras of the East Coast of North America", "age": "Adult", "link": "https://press.princeton.edu/books/paperback/9780691206387/field-guide-to-sharks-rays-and-chimaeras-of-the-east-coast-of-north", "price": "~$35", "desc": "The east-coast companion volume. Between the two, most of the northern hemisphere is covered.", "ngo": "Not applicable (Princeton University Press)"},
-            {"item": "Sharkpedia: A Brief Compendium of Shark Lore — Daniel Abel & Marc Dando", "age": "Adult", "link": "https://www.amazon.com/Sharkpedia-Brief-Compendium-Shark-Pedia/dp/0691252610", "price": "~$18", "desc": "Small, illustrated, and browsable — the shark book for someone who already owns the serious ones. Not to be confused with the DK children's title of the same name.", "ngo": "Not applicable (Princeton University Press)"}
+            {"id": "e43", "item": "Why Sharks Matter — David Shiffman", "age": "Adult", "link": "https://www.amazon.com/Why-Sharks-Matter-Misunderstood-Predator/dp/1421443643", "price": "$24.95 hardcover", "desc": "The book to hand anyone who asks what you actually do all day, and the one that argues the conservation case without the doom.", "ngo": "Not applicable (Johns Hopkins University Press)"},
+            {"id": "e44", "item": "Chasing Shadows: My Life Tracking the Great White Shark — Greg Skomal & Ret Talbot", "age": "Adult", "link": "https://www.amazon.com/Chasing-Shadows-Tracking-Great-White/dp/006309083X", "price": "~$20", "desc": "Skomal on the white shark's return to the eastern seaboard, and on doing science while the public panics.", "ngo": "Not applicable (trade publisher)"},
+            {"id": "e45", "item": "Sharks of the World: A Complete Guide — Ebert, Dando & Fowler", "age": "Adult", "link": "https://press.princeton.edu/books/hardcover/9780691205991/sharks-of-the-world", "price": "$58 — splurge", "desc": "536 species, fully revised. The reference copy for a lab shelf rather than a coffee table.", "ngo": "Not applicable (Princeton University Press)"},
+            {"id": "e46", "item": "Field Guide to Sharks, Rays & Chimaeras of Europe and the Mediterranean", "age": "Adult", "link": "https://press.princeton.edu/books/paperback/9780691205984/field-guide-to-sharks-rays-chimaeras-of-europe-and-the-mediterranean", "price": "~$35", "desc": "Regional guide for European colleagues and anyone working the Med.", "ngo": "Not applicable (Princeton University Press)"},
+            {"id": "e47", "item": "Field Guide to Sharks, Rays and Chimaeras of the East Coast of North America", "age": "Adult", "link": "https://press.princeton.edu/books/paperback/9780691206387/field-guide-to-sharks-rays-and-chimaeras-of-the-east-coast-of-north", "price": "~$35", "desc": "The east-coast companion volume. Between the two, most of the northern hemisphere is covered.", "ngo": "Not applicable (Princeton University Press)"},
+            {"id": "e48", "item": "Sharkpedia: A Brief Compendium of Shark Lore — Daniel Abel & Marc Dando", "age": "Adult", "link": "https://www.amazon.com/Sharkpedia-Brief-Compendium-Shark-Pedia/dp/0691252610", "price": "~$18", "desc": "Small, illustrated, and browsable — the shark book for someone who already owns the serious ones. Not to be confused with the DK children's title of the same name.", "ngo": "Not applicable (Princeton University Press)"}
           ]
         }
       ]
@@ -146,31 +146,31 @@
           "name": "Mask, snorkel & fins sets",
           "hint": "(kids' and adult sizes)",
           "items": [
-            {"item": "Aqua Lung Sport Kid's Mix Combo mask and snorkel set", "age": "Kids / Youth", "link": "https://www.divein.com/snorkel-set/", "price": "~$44", "desc": "Top children's pick in DiveIn's tested round-up. Linked to the review rather than a retailer because stock and pricing move; buy from whichever dive shop has the size.", "ngo": "Not stated (commercial)"},
-            {"item": "Reef Tourer youth single-window mask & snorkel set", "age": "Kids (ages 4–9)", "link": "https://www.divein.com/snorkel-set/", "price": "~$25", "desc": "The budget option that still seals properly on a small face — which is the whole game with children's masks.", "ngo": "Not stated (commercial)"}
+            {"id": "e49", "item": "Aqua Lung Sport Kid's Mix Combo mask and snorkel set", "age": "Kids / Youth", "link": "https://www.divein.com/snorkel-set/", "price": "~$44", "desc": "Top children's pick in DiveIn's tested round-up. Linked to the review rather than a retailer because stock and pricing move; buy from whichever dive shop has the size.", "ngo": "Not stated (commercial)"},
+            {"id": "e50", "item": "Reef Tourer youth single-window mask & snorkel set", "age": "Kids (ages 4–9)", "link": "https://www.divein.com/snorkel-set/", "price": "~$25", "desc": "The budget option that still seals properly on a small face — which is the whole game with children's masks.", "ngo": "Not stated (commercial)"}
           ]
         },
         {
           "name": "Rash guards, wetsuits & swim gear",
           "items": [
-            {"item": "Kids' UPF 50+ zip rash guards (SwimZip)", "age": "Baby & Toddler / Kids", "link": "https://swimzip.com/collections/toddlers-rash-guards", "price": "~$30", "desc": "Blocks 98% of UVA and UVB, and the full-length zip is what makes it possible to get a wriggling toddler into it.", "ngo": "Not stated (commercial)"},
-            {"item": "Shark-print UPF 50 sun shirts (Berry Jane)", "age": "Kids", "link": "https://berryjaneusa.com/", "price": "~$30", "desc": "Shark prints in Oeko-Tex inks, chlorine resistant. Site search for \"shark\" — individual prints rotate each season.", "ngo": "Not stated (commercial)"}
+            {"id": "e51", "item": "Kids' UPF 50+ zip rash guards (SwimZip)", "age": "Baby & Toddler / Kids", "link": "https://swimzip.com/collections/toddlers-rash-guards", "price": "~$30", "desc": "Blocks 98% of UVA and UVB, and the full-length zip is what makes it possible to get a wriggling toddler into it.", "ngo": "Not stated (commercial)"},
+            {"id": "e52", "item": "Shark-print UPF 50 sun shirts (Berry Jane)", "age": "Kids", "link": "https://berryjaneusa.com/", "price": "~$30", "desc": "Shark prints in Oeko-Tex inks, chlorine resistant. Site search for \"shark\" — individual prints rotate each season.", "ngo": "Not stated (commercial)"}
           ]
         },
         {
           "name": "Beach & rockpooling kit",
           "hint": "(nets, buckets, ID cards, sample trays)",
           "items": [
-            {"item": "RSPB Handbook of the Seashore", "age": "Kids / Youth / Adult", "link": "https://www.nhbs.com/rspb-handbook-of-the-seashore-book", "price": "~£17 (~$22)", "desc": "The book that turns a bucket of unidentified beasts into a species list. UK/European shores.", "ngo": "Not applicable — RSPB-branded (RSPB is a conservation charity)"},
-            {"item": "Waterproof sharks and rays ID cards (Franko Maps)", "age": "Youth / Adult", "link": "https://frankosmaps.com/collections/fish-cards", "price": "~$9 each", "desc": "Laminated, hole-punched for a lanyard, and available as region-specific sharks-and-rays cards for the Caribbean, Bahamas and elsewhere. Cheap and genuinely used in the water.", "ngo": "Not stated (commercial)"}
+            {"id": "e53", "item": "RSPB Handbook of the Seashore", "age": "Kids / Youth / Adult", "link": "https://www.nhbs.com/rspb-handbook-of-the-seashore-book", "price": "~£17 (~$22)", "desc": "The book that turns a bucket of unidentified beasts into a species list. UK/European shores.", "ngo": "Not applicable — RSPB-branded (RSPB is a conservation charity)"},
+            {"id": "e54", "item": "Waterproof sharks and rays ID cards (Franko Maps)", "age": "Youth / Adult", "link": "https://frankosmaps.com/collections/fish-cards", "price": "~$9 each", "desc": "Laminated, hole-punched for a lanyard, and available as region-specific sharks-and-rays cards for the Caribbean, Bahamas and elsewhere. Cheap and genuinely used in the water.", "ngo": "Not stated (commercial)"}
           ]
         },
         {
           "name": "Science & STEM kits",
           "hint": "(microscopes, model kits, ID decks)",
           "items": [
-            {"item": "4D Vision great white shark anatomy model", "age": "Youth", "link": "https://www.amazon.com/Vision-Great-White-Shark-Anatomy/dp/B001YIT1YI", "price": "$16–25", "desc": "Also listed under Toys & games — it works as a teaching aid as much as a toy. 20 detachable organs, ages 8+.", "ngo": "Not stated (commercial)"},
-            {"item": "Shark tooth fossil dig kits", "age": "Kids", "link": "https://www.amazon.com/National-Geographic-Shark-Tooth-Dig/dp/B0GKLT6MHN", "price": "~$20", "desc": "Excavation brick, chisel, brush and magnifier. The Discovery version contains real fossil teeth if you'd rather they dug up the genuine article.", "ngo": "Not stated (commercial)"}
+            {"id": "e55", "item": "4D Vision great white shark anatomy model", "age": "Youth", "link": "https://www.amazon.com/Vision-Great-White-Shark-Anatomy/dp/B001YIT1YI", "price": "$16–25", "desc": "Also listed under Toys & games — it works as a teaching aid as much as a toy. 20 detachable organs, ages 8+.", "ngo": "Not stated (commercial)"},
+            {"id": "e56", "item": "Shark tooth fossil dig kits", "age": "Kids", "link": "https://www.amazon.com/National-Geographic-Shark-Tooth-Dig/dp/B0GKLT6MHN", "price": "~$20", "desc": "Excavation brick, chisel, brush and magnifier. The Discovery version contains real fossil teeth if you'd rather they dug up the genuine article.", "ngo": "Not stated (commercial)"}
           ]
         },
         {
@@ -188,16 +188,16 @@
         {
           "name": "Kids",
           "items": [
-            {"item": "Shark colouring book with stickers", "age": "Kids", "link": "https://shopmairzydoats.com/products/shark-coloring-book-with-stickers", "price": "~$10", "desc": "Die-cut into the shape of a shark's head, FSC-certified paper, and a sheet of sea stickers in the back.", "ngo": "Not stated (commercial)"},
-            {"item": "Sharks of Florida colouring and activity book (Sharks4Kids)", "age": "Kids", "link": "https://www.sharks4kids.com/sharkshop", "price": "~$10–15", "desc": "Regionally specific, which is unusual and much more useful than generic shark art.", "ngo": "Sharks4Kids"}
+            {"id": "e57", "item": "Shark colouring book with stickers", "age": "Kids", "link": "https://shopmairzydoats.com/products/shark-coloring-book-with-stickers", "price": "~$10", "desc": "Die-cut into the shape of a shark's head, FSC-certified paper, and a sheet of sea stickers in the back.", "ngo": "Not stated (commercial)"},
+            {"id": "e58", "item": "Sharks of Florida colouring and activity book (Sharks4Kids)", "age": "Kids", "link": "https://www.sharks4kids.com/sharkshop", "price": "~$10–15", "desc": "Regionally specific, which is unusual and much more useful than generic shark art.", "ngo": "Sharks4Kids"}
           ]
         },
         {
           "name": "Youth",
           "items": [
-            {"item": "Whales & sharks washi tape (Cognitive Surplus)", "age": "Youth / Adult", "link": "https://cognitive-surplus.com/products/whales-sharks-washi-tape", "price": "~$8", "desc": "A science-stationery brand's take on cetaceans and sharks; the cheapest thing on this list that still feels considered.", "ngo": "Not stated (commercial)"},
-            {"item": "Oceanic 31 art prints (Shark Trust)", "age": "Youth / Adult", "link": "https://shop.sharktrust.org/collections", "price": "£35–75 (~$45–95) — splurge at the top end", "desc": "Species prints — silky, Galapagos, basking, smooth hammerhead, and a larger Carcharodon carcharias — from the Oceanic 31 campaign. Frame-worthy office art.", "ngo": "The Shark Trust"},
-            {"item": "Shark stickers and enamel pins (Fin Pin Shop)", "age": "Youth / Adult", "link": "https://finpinshop.com/", "price": "Stickers $5, pins $12", "desc": "\"Sharks are older than trees\", \"sharks are older than Saturn's rings\" — field-nerd humour done properly. Laptop and field-notebook decoration.", "ngo": "States that purchases support wildlife conservation and scientific research (percentage not published)"}
+            {"id": "e59", "item": "Whales & sharks washi tape (Cognitive Surplus)", "age": "Youth / Adult", "link": "https://cognitive-surplus.com/products/whales-sharks-washi-tape", "price": "~$8", "desc": "A science-stationery brand's take on cetaceans and sharks; the cheapest thing on this list that still feels considered.", "ngo": "Not stated (commercial)"},
+            {"id": "e60", "item": "Oceanic 31 art prints (Shark Trust)", "age": "Youth / Adult", "link": "https://shop.sharktrust.org/collections", "price": "£35–75 (~$45–95) — splurge at the top end", "desc": "Species prints — silky, Galapagos, basking, smooth hammerhead, and a larger Carcharodon carcharias — from the Oceanic 31 campaign. Frame-worthy office art.", "ngo": "The Shark Trust"},
+            {"id": "e61", "item": "Shark stickers and enamel pins (Fin Pin Shop)", "age": "Youth / Adult", "link": "https://finpinshop.com/", "price": "Stickers $5, pins $12", "desc": "\"Sharks are older than trees\", \"sharks are older than Saturn's rings\" — field-nerd humour done properly. Laptop and field-notebook decoration.", "ngo": "States that purchases support wildlife conservation and scientific research (percentage not published)"}
           ]
         }
       ]
@@ -210,67 +210,67 @@
         {
           "name": "The Shark Trust (UK)",
           "items": [
-            {"item": "Full range: adoptions, clothing, prints, jigsaw, books", "age": "All bands", "link": "https://shop.sharktrust.org/", "price": "£12–75 for most items (SUPs £549+)", "desc": "Digital shark adoptions £25 worldwide, printed packs £25 UK-only; clothing on a separate print-on-demand site; Oceanic 31 prints £35–75. The most complete single-org range on this list.", "ngo": "The Shark Trust"}
+            {"id": "e62", "item": "Full range: adoptions, clothing, prints, jigsaw, books", "age": "All bands", "link": "https://shop.sharktrust.org/", "price": "£12–75 for most items (SUPs £549+)", "desc": "Digital shark adoptions £25 worldwide, printed packs £25 UK-only; clothing on a separate print-on-demand site; Oceanic 31 prints £35–75. The most complete single-org range on this list.", "ngo": "The Shark Trust"}
           ]
         },
         {
           "name": "OCEARCH (US)",
           "items": [
-            {"item": "Full range: apparel, headwear, plush, puzzle, stickers", "age": "Youth / Adult (plush suits younger)", "link": "https://shop.ocearch.org/collections/all", "price": "$12–85", "desc": "Tees $29.99–39.99, hoodies $49.99–69.99, plushie $29.99, 1000-piece puzzle $24.99, can cooler $12, sticker pack $20.", "ngo": "OCEARCH — funds shark research, tracking and free education programmes"}
+            {"id": "e63", "item": "Full range: apparel, headwear, plush, puzzle, stickers", "age": "Youth / Adult (plush suits younger)", "link": "https://shop.ocearch.org/collections/all", "price": "$12–85", "desc": "Tees $29.99–39.99, hoodies $49.99–69.99, plushie $29.99, 1000-piece puzzle $24.99, can cooler $12, sticker pack $20.", "ngo": "OCEARCH — funds shark research, tracking and free education programmes"}
           ]
         },
         {
           "name": "Sharks4Kids (US, Florida)",
           "items": [
-            {"item": "Full range: books, apparel, lemon shark adoption", "age": "Baby & Toddler through Adult", "link": "https://www.sharks4kids.com/sharkshop", "price": "$10–40", "desc": "Colouring and activity books, Redbubble and Bonfire apparel, an Adopt a Lemon Shark programme, and partner discount codes (Stream2Sea reef-safe sunscreen, Alohi Kai jewellery).", "ngo": "Sharks4Kids — 501(c)(3)"}
+            {"id": "e64", "item": "Full range: books, apparel, lemon shark adoption", "age": "Baby & Toddler through Adult", "link": "https://www.sharks4kids.com/sharkshop", "price": "$10–40", "desc": "Colouring and activity books, Redbubble and Bonfire apparel, an Adopt a Lemon Shark programme, and partner discount codes (Stream2Sea reef-safe sunscreen, Alohi Kai jewellery).", "ngo": "Sharks4Kids — 501(c)(3)"}
           ]
         },
         {
           "name": "Minorities in Shark Sciences (MISS)",
           "items": [
-            {"item": "Full range: stickers, tees, hoodies, posters", "age": "Youth / Adult", "link": "https://www.redbubble.com/people/misselasmo/shop", "price": "$3–45", "desc": "Includes the annual Shark Madness sticker collections. Main site: misselasmo.org.", "ngo": "MISS — supports gender minorities of colour entering marine and shark science"}
+            {"id": "e65", "item": "Full range: stickers, tees, hoodies, posters", "age": "Youth / Adult", "link": "https://www.redbubble.com/people/misselasmo/shop", "price": "$3–45", "desc": "Includes the annual Shark Madness sticker collections. Main site: misselasmo.org.", "ngo": "MISS — supports gender minorities of colour entering marine and shark science"}
           ]
         },
         {
           "name": "Bimini Biological Field Station (Shark Lab)",
           "items": [
-            {"item": "Shark Shop apparel", "age": "Youth / Adult", "link": "https://www.biminisharklab.com/sharkshop", "price": "$25–60", "desc": "Hats, tees, tanks, crops, hoodies and long sleeves. Classic logo apparel is sold in Bimini only; occasional Bonfire fundraising drops online.", "ngo": "100% of funds to the Bimini Biological Field Station Foundation"}
+            {"id": "e66", "item": "Shark Shop apparel", "age": "Youth / Adult", "link": "https://www.biminisharklab.com/sharkshop", "price": "$25–60", "desc": "Hats, tees, tanks, crops, hoodies and long sleeves. Classic logo apparel is sold in Bimini only; occasional Bonfire fundraising drops online.", "ngo": "100% of funds to the Bimini Biological Field Station Foundation"}
           ]
         },
         {
           "name": "Atlantic White Shark Conservancy",
           "items": [
-            {"item": "Merch, jewellery and a Massachusetts licence plate", "age": "Youth / Adult", "link": "https://www.atlanticwhiteshark.org/", "price": "$25–40", "desc": "Bonfire limited editions, the Cape Clasp great white necklace, and a Paul McPhee-designed MA plate ($40, of which $28 is tax deductible). Physical shops in Chatham and Provincetown.", "ngo": "AWSC — all shop proceeds fund research, education, public safety and conservation"}
+            {"id": "e67", "item": "Merch, jewellery and a Massachusetts licence plate", "age": "Youth / Adult", "link": "https://www.atlanticwhiteshark.org/", "price": "$25–40", "desc": "Bonfire limited editions, the Cape Clasp great white necklace, and a Paul McPhee-designed MA plate ($40, of which $28 is tax deductible). Physical shops in Chatham and Provincetown.", "ngo": "AWSC — all shop proceeds fund research, education, public safety and conservation"}
           ]
         },
         {
           "name": "Monterey Bay Aquarium",
           "items": [
-            {"item": "Recycled-plastic plush, toys, apparel, books", "age": "Baby & Toddler through Adult", "link": "https://shop.montereybayaquarium.org/collections/plush-animals", "price": "$15–50", "desc": "The ecokin plush line is made from 100% recycled PET. Broad enough to cover several age bands from one shop.", "ngo": "Monterey Bay Aquarium (non-profit)"}
+            {"id": "e68", "item": "Recycled-plastic plush, toys, apparel, books", "age": "Baby & Toddler through Adult", "link": "https://shop.montereybayaquarium.org/collections/plush-animals", "price": "$15–50", "desc": "The ecokin plush line is made from 100% recycled PET. Broad enough to cover several age bands from one shop.", "ngo": "Monterey Bay Aquarium (non-profit)"}
           ]
         },
         {
           "name": "Cape Clasp",
           "items": [
-            {"item": "Marine-species jewellery", "age": "Youth / Adult", "link": "https://www.capeclasp.com/collections/sharks", "price": "$29.99–84.99", "desc": "Not an NGO itself, but 15% of profits go to marine non-profits, with specific pieces tied to named partners (the great white necklace supports AWSC).", "ngo": "15% of profits to marine non-profits"}
+            {"id": "e69", "item": "Marine-species jewellery", "age": "Youth / Adult", "link": "https://www.capeclasp.com/collections/sharks", "price": "$29.99–84.99", "desc": "Not an NGO itself, but 15% of profits go to marine non-profits, with specific pieces tied to named partners (the great white necklace supports AWSC).", "ngo": "15% of profits to marine non-profits"}
           ]
         },
         {
           "name": "Shark Stewards",
           "items": [
-            {"item": "Shark shop", "age": "Youth / Adult", "link": "https://sharkstewards.org/shark-shop/", "price": "Varies", "desc": "US organisation working since 2006 to reduce the shark fin trade; merch supports that campaigning.", "ngo": "Shark Stewards"}
+            {"id": "e70", "item": "Shark shop", "age": "Youth / Adult", "link": "https://sharkstewards.org/shark-shop/", "price": "Varies", "desc": "US organisation working since 2006 to reduce the shark fin trade; merch supports that campaigning.", "ngo": "Shark Stewards"}
           ]
         },
         {
           "name": "Shark Angels",
           "items": [
-            {"item": "Shark adoptions and apparel — shop currently being rebuilt", "age": "All bands", "link": "https://sharkangels.org/shop-update/", "price": "Varies", "desc": "Virtual and plush shark adoptions plus apparel. Flagged because shop.sharkangels.org now redirects to an update notice, so check availability before recommending it as a gift.", "ngo": "Shark Angels"}
+            {"id": "e71", "item": "Shark adoptions and apparel — shop currently being rebuilt", "age": "All bands", "link": "https://sharkangels.org/shop-update/", "price": "Varies", "desc": "Virtual and plush shark adoptions plus apparel. Flagged because shop.sharkangels.org now redirects to an update notice, so check availability before recommending it as a gift.", "ngo": "Shark Angels"}
           ]
         },
         {
           "name": "Save Our Seas Foundation",
           "items": [
-            {"item": "Ocean-inspired apparel and accessories", "age": "Youth / Adult", "link": "https://shopsaveourseas.com/", "price": "Varies", "desc": "Graphic tees and accessories. Note that \"Save Our Seas\" is also a generic slogan on Redbubble, Etsy and elsewhere — this is the Foundation's own shop.", "ngo": "Save Our Seas Foundation"}
+            {"id": "e72", "item": "Ocean-inspired apparel and accessories", "age": "Youth / Adult", "link": "https://shopsaveourseas.com/", "price": "Varies", "desc": "Graphic tees and accessories. Note that \"Save Our Seas\" is also a generic slogan on Redbubble, Etsy and elsewhere — this is the Foundation's own shop.", "ngo": "Save Our Seas Foundation"}
           ]
         }
       ]
@@ -283,28 +283,28 @@
         {
           "name": "Adoptions & subscriptions",
           "items": [
-            {"item": "Adopt a Shark — digital pack (Shark Trust)", "age": "All bands", "link": "https://shop.sharktrust.org/collections/digital-shark-adoptions", "price": "£25 (~$32)", "desc": "Great white, whale, hammerhead, basking or oceanic whitetip. Personalised certificate, factsheets, poster and bookmark; the money funds research and campaigns rather than one animal. Digital version ships worldwide.", "ngo": "The Shark Trust"},
-            {"item": "Adopt a Shark — printed pack (Shark Trust, UK only)", "age": "All bands", "link": "https://shop.sharktrust.org/collections/adopt-a-shark", "price": "£25 (~$32)", "desc": "The physical version, for recipients who want something to open. UK delivery only.", "ngo": "The Shark Trust"},
-            {"item": "Adopt an Animal (Mote Marine Laboratory & Aquarium)", "age": "All bands", "link": "https://mote.org/adopt/", "price": "From $30", "desc": "Three adoption tiers starting with a $30 e-adoption (personalised certificate and fact card). Sharks among the species available.", "ngo": "Mote Marine Laboratory (non-profit research institution)"},
-            {"item": "Adopt a Lemon Shark (Sharks4Kids)", "age": "All bands", "link": "https://www.sharks4kids.com/sharkshop", "price": "Varies (tax-deductible donation)", "desc": "Supports conservation research, and it's a lemon shark rather than the usual great white.", "ngo": "Sharks4Kids"},
-            {"item": "Shark Tracker+ subscription (OCEARCH)", "age": "Youth / Adult", "link": "https://www.ocearch.org/tracker/", "price": "A few dollars a month", "desc": "Follow real tagged sharks, with shop discounts included. A gift that keeps arriving as pings all year.", "ngo": "OCEARCH"}
+            {"id": "e73", "item": "Adopt a Shark — digital pack (Shark Trust)", "age": "All bands", "link": "https://shop.sharktrust.org/collections/digital-shark-adoptions", "price": "£25 (~$32)", "desc": "Great white, whale, hammerhead, basking or oceanic whitetip. Personalised certificate, factsheets, poster and bookmark; the money funds research and campaigns rather than one animal. Digital version ships worldwide.", "ngo": "The Shark Trust"},
+            {"id": "e74", "item": "Adopt a Shark — printed pack (Shark Trust, UK only)", "age": "All bands", "link": "https://shop.sharktrust.org/collections/adopt-a-shark", "price": "£25 (~$32)", "desc": "The physical version, for recipients who want something to open. UK delivery only.", "ngo": "The Shark Trust"},
+            {"id": "e75", "item": "Adopt an Animal (Mote Marine Laboratory & Aquarium)", "age": "All bands", "link": "https://mote.org/adopt/", "price": "From $30", "desc": "Three adoption tiers starting with a $30 e-adoption (personalised certificate and fact card). Sharks among the species available.", "ngo": "Mote Marine Laboratory (non-profit research institution)"},
+            {"id": "e76", "item": "Adopt a Lemon Shark (Sharks4Kids)", "age": "All bands", "link": "https://www.sharks4kids.com/sharkshop", "price": "Varies (tax-deductible donation)", "desc": "Supports conservation research, and it's a lemon shark rather than the usual great white.", "ngo": "Sharks4Kids"},
+            {"id": "e77", "item": "Shark Tracker+ subscription (OCEARCH)", "age": "Youth / Adult", "link": "https://www.ocearch.org/tracker/", "price": "A few dollars a month", "desc": "Follow real tagged sharks, with shop discounts included. A gift that keeps arriving as pings all year.", "ngo": "OCEARCH"}
           ]
         },
         {
           "name": "Experiences",
           "items": [
-            {"item": "Shark encounter or dive immersion (Aquarium of the Pacific, Long Beach CA)", "age": "Youth / Adult", "link": "https://www.aquariumofpacific.org/", "price": "$109 encounter (includes admission); $299 certified-diver immersion — splurge", "desc": "Up-close animal encounter on select days, or a full dive for certified divers daily.", "ngo": "Aquarium of the Pacific (non-profit)"},
-            {"item": "Out to Sea Shark Dive (Wonders of Wildlife, Springfield MO)", "age": "Youth / Adult", "link": "https://wondersofwildlife.org/ticket/shark-dive/", "price": "Varies — splurge", "desc": "SeaTREK helmet dive with sand tiger and sandbar sharks, no diving certification needed.", "ngo": "Wonders of Wildlife (non-profit)"},
-            {"item": "Eye-to-Eye shark dive gift ticket (Point Defiance Zoo & Aquarium, Tacoma WA)", "age": "Adult", "link": "https://www.pdza.org/discover/shark-dives/shark-dive-faq/", "price": "Varies — splurge", "desc": "Sold specifically as an undated gift ticket for up to four divers, which solves the \"they can't commit to a date\" problem.", "ngo": "Point Defiance Zoo & Aquarium (non-profit)"},
-            {"item": "Aquarium membership (Georgia Aquarium and others)", "age": "All bands", "link": "https://www.georgiaaquarium.org/holiday-gift-guide/", "price": "Varies", "desc": "A year of visits rather than one afternoon. Most accredited aquariums run an equivalent — pick whichever is nearest the recipient.", "ngo": "Georgia Aquarium (non-profit)"},
-            {"item": "Whale shark conservation volunteering (Maldives, Mafia Island, Belize)", "age": "Adult", "link": "https://www.thegreatprojects.com/volunteer-with-whale-sharks", "price": "Hundreds to low thousands — serious splurge", "desc": "For the person who wants to give something enormous. Research placements rather than tourist swims, which is the ethical distinction that matters here.", "ngo": "Varies by placement — check the individual project"}
+            {"id": "e78", "item": "Shark encounter or dive immersion (Aquarium of the Pacific, Long Beach CA)", "age": "Youth / Adult", "link": "https://www.aquariumofpacific.org/", "price": "$109 encounter (includes admission); $299 certified-diver immersion — splurge", "desc": "Up-close animal encounter on select days, or a full dive for certified divers daily.", "ngo": "Aquarium of the Pacific (non-profit)"},
+            {"id": "e79", "item": "Out to Sea Shark Dive (Wonders of Wildlife, Springfield MO)", "age": "Youth / Adult", "link": "https://wondersofwildlife.org/ticket/shark-dive/", "price": "Varies — splurge", "desc": "SeaTREK helmet dive with sand tiger and sandbar sharks, no diving certification needed.", "ngo": "Wonders of Wildlife (non-profit)"},
+            {"id": "e80", "item": "Eye-to-Eye shark dive gift ticket (Point Defiance Zoo & Aquarium, Tacoma WA)", "age": "Adult", "link": "https://www.pdza.org/discover/shark-dives/shark-dive-faq/", "price": "Varies — splurge", "desc": "Sold specifically as an undated gift ticket for up to four divers, which solves the \"they can't commit to a date\" problem.", "ngo": "Point Defiance Zoo & Aquarium (non-profit)"},
+            {"id": "e81", "item": "Aquarium membership (Georgia Aquarium and others)", "age": "All bands", "link": "https://www.georgiaaquarium.org/holiday-gift-guide/", "price": "Varies", "desc": "A year of visits rather than one afternoon. Most accredited aquariums run an equivalent — pick whichever is nearest the recipient.", "ngo": "Georgia Aquarium (non-profit)"},
+            {"id": "e82", "item": "Whale shark conservation volunteering (Maldives, Mafia Island, Belize)", "age": "Adult", "link": "https://www.thegreatprojects.com/volunteer-with-whale-sharks", "price": "Hundreds to low thousands — serious splurge", "desc": "For the person who wants to give something enormous. Research placements rather than tourist swims, which is the ethical distinction that matters here.", "ngo": "Varies by placement — check the individual project"}
           ]
         },
         {
           "name": "Advent calendars & seasonal",
           "items": [
-            {"item": "\"Shark Attack Pack\" fossil advent calendar (Code Black Fossils)", "age": "Kids / Youth", "link": "https://codeblackfossils.com/product/sharkattackpack/", "price": "~$30–50", "desc": "Seven days, a genuine fossilised shark tooth behind each door. The only advent calendar here that leaves you with something real.", "ngo": "Not stated (commercial)"},
-            {"item": "24-day 3D-printed sea animals advent calendar", "age": "Kids (3–12)", "link": "https://us.amazon.com/Advent-Calendar-Countdown-Printed-Animals/dp/B0H1HRVM8V", "price": "~$25–35", "desc": "Twenty-four articulated ocean animals including sharks; doubles as a fidget-toy stash after December.", "ngo": "Not stated (commercial)"}
+            {"id": "e83", "item": "\"Shark Attack Pack\" fossil advent calendar (Code Black Fossils)", "age": "Kids / Youth", "link": "https://codeblackfossils.com/product/sharkattackpack/", "price": "~$30–50", "desc": "Seven days, a genuine fossilised shark tooth behind each door. The only advent calendar here that leaves you with something real.", "ngo": "Not stated (commercial)"},
+            {"id": "e84", "item": "24-day 3D-printed sea animals advent calendar", "age": "Kids (3–12)", "link": "https://us.amazon.com/Advent-Calendar-Countdown-Printed-Animals/dp/B0H1HRVM8V", "price": "~$25–35", "desc": "Twenty-four articulated ocean animals including sharks; doubles as a fidget-toy stash after December.", "ngo": "Not stated (commercial)"}
           ]
         }
       ]
