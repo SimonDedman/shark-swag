@@ -14,8 +14,11 @@ from pathlib import Path
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.workbook.defined_name import DefinedName
+from openpyxl.worksheet.datavalidation import DataValidation
 from PIL import Image, ImageDraw, ImageFont
 
+import entries
 import intake_queue
 # The ranking below needs pool.score, but importing this also inherits pool.py's
 # import-time side effects: it inserts the project root onto sys.path and
@@ -36,6 +39,7 @@ COLUMNS = [
     ("Approx. price", 13, "price", True),
     ("Description", 52, None, True),
     ("Suggested by", 18, "sender", True),
+    ("NGO?", 10, None, True),
     ("NGO / proceeds to conservation?", 40, "ngo_text", True),
     ("Image pick", 11, "picked", True),
     ("Fetch", 9, "fetch_status", False),
@@ -52,6 +56,83 @@ COLUMNS = [
 
 EVIDENCE_FILL = PatternFill("solid", fgColor="F2F2F2")
 CELL, HDR, COLS = 190, 30, 12
+
+# Flip this to False if LibreOffice ever mishandles the INDIRECT()-based
+# per-section Subsection dropdown on Simon's machine: the fallback is one
+# flat list of every subsection name across every section, with no
+# filtering by Section. Either way, intake_apply.validate() still refuses a
+# subsection that does not belong to the chosen section and names the valid
+# ones, so a dropdown that fails to appear costs typing, never a bad write.
+DEPENDENT_SUBSECTION_DROPDOWN = True
+
+STATUS_OPTIONS = ["ACCEPT", "REJECT", "HOLD"]
+NGO_OPTIONS = ["Yes", "No", "Not stated"]
+
+# Data validation ranges reach this far past the last data row, so pasting
+# extra rows in below the fetched ones still gets a working dropdown.
+VALIDATION_ROW_MARGIN = 500
+
+_NGO_NEGATIVE = re.compile(
+    r"\bno\s+donation|\bnot\s+applicable\b|\bnot\s+stated\b|\bdoes\s+not\s+donate\b|"
+    r"\bno\s+charity\b|\bnot\s+a\s+registered\s+charity\b", re.I)
+
+
+def guess_ngo_flag(ngo_text):
+    """Yes, No, or Not stated for the new NGO? column, guessed from the
+    verbatim ngo_text sentence. It is a guess like any other guess in this
+    sheet: editable, and it never overwrites the quote itself."""
+    text = str(ngo_text or "").strip()
+    if not text:
+        return "Not stated"
+    if _NGO_NEGATIVE.search(text):
+        return "No"
+    return "Yes"
+
+
+def section_choices():
+    """[(number, label)] for every section in items.json, in document order,
+    e.g. ('5', '5. \U0001f3a8 Arts, crafts & stationery')."""
+    return [(s["number"], f"{s['number']}. {s['title']}")
+            for s in entries.load_items()["sections"]]
+
+
+def section_label(number):
+    """'5' -> '5. \U0001f3a8 Arts, crafts & stationery'. A blank number stays
+    blank; an unrecognised one is returned unchanged rather than guessed at,
+    so a hand-typed oddity is visible instead of silently swallowed."""
+    number = str(number or "").strip()
+    if not number:
+        return ""
+    for num, label in section_choices():
+        if num == number:
+            return label
+    return number
+
+
+def subsections_for(number):
+    """The subsection names that belong to one section number, in document
+    order. Reads items.json directly rather than through intake_classify's
+    cached lookup, so a test that points entries.ITEMS at a temp file is
+    reflected here immediately rather than through a stale cache."""
+    number = str(number or "").strip()
+    for s in entries.load_items()["sections"]:
+        if s["number"] == number:
+            return [sub["name"] for sub in s["subsections"]]
+    return []
+
+
+def distinct_ages():
+    """Every distinct Age value used anywhere in items.json, including the
+    compound ones ("Kids / Youth / Adult" and similar), so an existing value
+    already in the document never fails its own dropdown."""
+    ages = set()
+    for s in entries.load_items()["sections"]:
+        for sub in s["subsections"]:
+            for item in sub["items"]:
+                age = str(item.get("age", "")).strip()
+                if age:
+                    ages.add(age)
+    return sorted(ages)
 
 
 GALLERY_BONUS = 1000  # far above pool.score's own point scale
@@ -186,8 +267,12 @@ def _info(ws, rows):
         ("4. Correct Section, Subsection, Item, Age, and Approx. price where the "
          "guess is wrong. Section keyword shows which rule produced the guess. "
          "Subsection must be one of the names already used in that section of the "
-         "document; intake_apply.py will list the valid names if it does not match.",
-         False),
+         "document; intake_apply.py will list the valid names if it does not match. "
+         "Status, Section, Subsection, Age, and NGO? are all offered as dropdowns, "
+         "so the valid options are on screen rather than recalled from memory; the "
+         "Lists tab shows every option in full, including all of them by section for "
+         "Subsection. Subsection's dropdown is filtered to whichever Section is "
+         "already chosen on that row where LibreOffice supports it.", False),
         ("5. Open the contact sheet linked in the Contact sheet column and put the "
          "index of the image you want in Image pick. The sheet shows the twelve "
          "best-ranked candidates, numbered from zero, and only those indices can be "
@@ -196,7 +281,10 @@ def _info(ws, rows):
          "for no image.", False),
         ("6. Set Status to ACCEPT, REJECT, or HOLD. Blank counts as HOLD. ACCEPT adds "
          "the entry; REJECT records the link so it is never queued again; HOLD leaves "
-         "it for the next workbook.", False),
+         "it for the next workbook. NGO? is a Yes / No / Not stated guess, pre-filled "
+         "from the wording in NGO / proceeds to conservation?, so the sheet can be "
+         "filtered by it; correct it if it is wrong, but leave the quoted sentence in "
+         "the NGO / proceeds to conservation? column itself alone.", False),
         ("", False),
         ("7. Save the workbook, then run:", True),
         ("   ~/.venvs/scrape/bin/python intake_apply.py", False),
@@ -210,6 +298,143 @@ def _info(ws, rows):
     ws.column_dimensions["A"].width = 118
     ws.freeze_panes = "A2"
     ws["A1"].font = Font(bold=True, size=13)
+
+
+def _write_list_column(ws, col, header, values):
+    """One bold-headed column of a controlled vocabulary on the Lists tab.
+    Returns how many values were written, so callers can size a range."""
+    ws.cell(row=1, column=col, value=header).font = Font(bold=True)
+    for i, value in enumerate(values, 2):
+        ws.cell(row=i, column=col, value=value)
+    width = max([len(str(header))] + [len(str(v)) for v in values] + [8]) + 2
+    ws.column_dimensions[get_column_letter(col)].width = min(width, 46)
+    return len(values)
+
+
+def build_lists_sheet(wb):
+    """A visible Lists tab, readable as a reference in its own right: one
+    bold-headed column per controlled vocabulary, plus one column per section
+    holding that section's subsections, plus a flat column of every
+    subsection across every section for the non-dependent fallback.
+
+    Also defines the sub_<N> named ranges the dependent Subsection dropdown
+    resolves through INDIRECT(). Returns {vocabulary_name: (column, count)},
+    used to build the Review tab's data validation ranges.
+    """
+    ws = wb.create_sheet("Lists")
+    ranges = {}
+    col = 1
+
+    ranges["Status"] = (col, _write_list_column(ws, col, "Status", STATUS_OPTIONS))
+    col += 1
+
+    sections = section_choices()
+    ranges["Section"] = (col, _write_list_column(
+        ws, col, "Section", [label for _, label in sections]))
+    col += 1
+
+    ranges["NGO?"] = (col, _write_list_column(ws, col, "NGO?", NGO_OPTIONS))
+    col += 1
+
+    ranges["Age"] = (col, _write_list_column(ws, col, "Age", distinct_ages()))
+    col += 1
+
+    sub_ranges = {}
+    all_subs = []
+    for number, label in sections:
+        subs = subsections_for(number)
+        for name in subs:
+            if name not in all_subs:
+                all_subs.append(name)
+        sub_ranges[number] = (col, _write_list_column(ws, col, f"Subsections: {label}", subs))
+        col += 1
+
+    ranges["All subsections"] = (col, _write_list_column(
+        ws, col, "All subsections", sorted(all_subs)))
+    col += 1
+
+    for number, (c, n) in sub_ranges.items():
+        letter = get_column_letter(c)
+        last = max(n + 1, 2)
+        wb.defined_names[f"sub_{number}"] = DefinedName(
+            f"sub_{number}", attr_text=f"Lists!${letter}$2:${letter}${last}")
+
+    ws.freeze_panes = "A2"
+    return ranges
+
+
+def _list_range_formula(col, count):
+    """A cell-range reference into the Lists tab, e.g. 'Lists!$B$2:$B$8'.
+    Never an inline list: Section alone runs past the 255-character cap on
+    formula1='"a,b,c"'."""
+    letter = get_column_letter(col)
+    last = max(count + 1, 2)
+    return f"Lists!${letter}$2:${letter}${last}"
+
+
+def _add_dropdown(ws, col_index, formula1, title, prompt, error, n_rows):
+    letter = get_column_letter(col_index)
+    end_row = max(n_rows + 1, 2) + VALIDATION_ROW_MARGIN
+    dv = DataValidation(type="list", formula1=formula1, allow_blank=True,
+                        showErrorMessage=True, showInputMessage=True,
+                        errorTitle="Not a valid option", error=error,
+                        promptTitle=title, prompt=prompt)
+    # showDropDown is misleadingly named: openpyxl's own alias for it is
+    # hide_drop_down, so leaving it at its default (False) is what SHOWS the
+    # arrow. Set nothing here; verify by reading dv.showDropDown back rather
+    # than trusting this comment.
+    dv.sqref = f"{letter}2:{letter}{end_row}"
+    ws.add_data_validation(dv)
+    return dv
+
+
+def _attach_dropdowns(ws, ranges, n_rows):
+    """Data validation on the five controlled Review columns, each pointing
+    at a range on the Lists tab rather than an inline list."""
+    col_index = {header: i for i, (header, _w, _k, _e) in enumerate(COLUMNS, 1)}
+
+    _add_dropdown(
+        ws, col_index["Status"], _list_range_formula(*ranges["Status"]), "Status",
+        "ACCEPT adds this entry to items.json, REJECT records the link so it is "
+        "never queued again, and HOLD leaves it for the next workbook. A blank "
+        "cell is read as HOLD.",
+        "Choose ACCEPT, REJECT, or HOLD.", n_rows)
+
+    _add_dropdown(
+        ws, col_index["Section"], _list_range_formula(*ranges["Section"]), "Section",
+        "Pick the section this item belongs to. The full, numbered list is on "
+        "the Lists tab.",
+        "Choose one of the sections listed on the Lists tab.", n_rows)
+
+    section_letter = get_column_letter(col_index["Section"])
+    if DEPENDENT_SUBSECTION_DROPDOWN:
+        sub_formula = (f'INDIRECT("sub_"&LEFT(${section_letter}2&".",'
+                       f'FIND(".",${section_letter}2&".")-1))')
+    else:
+        sub_formula = _list_range_formula(*ranges["All subsections"])
+    _add_dropdown(
+        ws, col_index["Subsection"], sub_formula, "Subsection",
+        "Pick a subsection belonging to the chosen Section. If this list does "
+        "not filter itself by Section in your copy of LibreOffice, see the "
+        "Lists tab for every subsection grouped by section: intake_apply.py "
+        "still refuses a mismatched pair and names the valid options, so a "
+        "dropdown that fails to appear costs typing, never a bad entry.",
+        "This is not one of the subsection names intake_apply.py recognises "
+        "for the chosen section.", n_rows)
+
+    _add_dropdown(
+        ws, col_index["Age"], _list_range_formula(*ranges["Age"]), "Age",
+        "Pick an age band, including a compound one such as "
+        '"Kids / Youth / Adult" where that is what the document already uses.',
+        "Choose one of the age bands listed on the Lists tab.", n_rows)
+
+    _add_dropdown(
+        ws, col_index["NGO?"], _list_range_formula(*ranges["NGO?"]), "NGO?",
+        "Yes if the NGO / proceeds column states a donation is made, No if it "
+        "states that none is made, and Not stated if it says nothing either "
+        "way. This is pre-filled as a guess from that column's wording, so "
+        "correct it if it is wrong.",
+        "Choose Yes, No, or Not stated.", n_rows)
 
 
 def write_workbook(rows, path):
@@ -233,6 +458,10 @@ def write_workbook(rows, path):
                 sheet_path = SHEETS / f"pending_{row['queue_id']}.jpg"
                 value = (f'=HYPERLINK("{sheet_path}","images")'
                          if sheet_path.exists() else "")
+            elif header == "Section":
+                value = section_label(row.get(key, ""))
+            elif header == "NGO?":
+                value = guess_ngo_flag(row.get("ngo_text", ""))
             else:
                 value = row.get(key, "") if key else ""
             cell = ws.cell(row=r, column=i, value=value)
@@ -251,6 +480,9 @@ def write_workbook(rows, path):
             continue
         if not any(str(row.get(key, "")).strip() for row in rows):
             ws.column_dimensions[get_column_letter(i)].hidden = True
+
+    ranges = build_lists_sheet(wb)
+    _attach_dropdowns(ws, ranges, len(rows))
 
     wb.save(path)
     return path

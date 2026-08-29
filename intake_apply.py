@@ -29,6 +29,22 @@ REQUIRED = ["Section", "Subsection", "Item", "Description"]
 # a durable false statement bought with one stray hyphen.
 PICK_INDEX = re.compile(r"[0-9]+")
 
+# A dropdown-filled Section cell reads "5. \U0001f3a8 Arts, crafts & stationery"
+# (intake_sheet.section_label's format); a bare "5" typed by hand, or left
+# over from an older workbook, must keep working too, so only the leading
+# digits are pulled out and everything else is discarded.
+SECTION_NUM = re.compile(r"^\s*(\d+)")
+
+
+def normalise_section(value):
+    """The section NUMBER a workbook cell means, whichever of the two shapes
+    it was written in. Anything that carries no leading digits (blank, or a
+    stray typo) passes through unchanged, so validate() can refuse it with
+    its own message rather than this silently inventing a number."""
+    text = str(value or "").strip()
+    m = SECTION_NUM.match(text)
+    return m.group(1) if m else text
+
 
 def newest_workbook():
     books = sorted(INTAKE.glob("review_*.xlsx"))
@@ -47,6 +63,7 @@ def read_workbook(path):
             continue
         row = {h: ("" if v is None else v) for h, v in zip(headers, values)}
         row["Status"] = (str(row.get("Status") or "").strip().upper() or "HOLD")
+        row["Section"] = normalise_section(row.get("Section", ""))
         rows.append(row)
     return rows
 

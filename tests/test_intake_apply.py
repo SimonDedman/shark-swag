@@ -482,3 +482,79 @@ def test_finalize_queue_is_not_an_error_when_the_sheet_is_already_gone(tmp_path,
     intake_queue.save_queue([{"queue_id": "q0001"}], path=queue_path)
 
     intake_apply._finalize_queue([("q0001", "e99")], [], queue_path=queue_path)  # no raise
+
+
+# --- Workbook dropdowns: the Section cell now carries a descriptor
+# ("5. \U0001f3a8 Arts, crafts & stationery"), typed by the dropdown built in
+# intake_sheet, but a bare number typed by hand or left over from an older
+# workbook must keep working, since validate() and apply_row compare it
+# against items.json's plain section number. ---
+
+def test_normalise_section_strips_a_full_descriptor():
+    assert intake_apply.normalise_section("5. \U0001f3a8 Arts, crafts & stationery") == "5"
+
+
+def test_normalise_section_accepts_a_bare_number_unchanged():
+    assert intake_apply.normalise_section("5") == "5"
+
+
+def test_normalise_section_leaves_a_blank_cell_blank():
+    assert intake_apply.normalise_section("") == ""
+    assert intake_apply.normalise_section(None) == ""
+
+
+def test_read_workbook_normalises_a_dropdown_written_section(workbook):
+    """A workbook built by intake_sheet.write_workbook now shows the Section
+    cell as a full descriptor; read_workbook must hand validate() and
+    apply_row a plain number."""
+    path = workbook([sheet_row()], ["ACCEPT"], ["Bamboo socks."])
+    rows = intake_apply.read_workbook(path)
+    assert rows[0]["Section"] == "1"
+
+
+def test_validate_still_passes_a_descriptor_shaped_section(workbook, staged):
+    path = workbook([sheet_row()], ["ACCEPT"], ["Bamboo socks."])
+    rows = intake_apply.read_workbook(path)
+    # write_workbook already turned "1" into a descriptor; confirm the round
+    # trip through read_workbook produced the plain number validate() expects.
+    assert rows[0]["Section"] == "1"
+    assert intake_apply.validate(rows, staged()) == []
+
+
+def test_apply_row_accepts_a_hand_typed_bare_section_number():
+    """apply_row itself is never handed a descriptor directly - read_workbook
+    normalises first - but it must keep accepting the bare number a caller
+    (or an older workbook) hands it."""
+    data = {"sections": [{"number": "5", "title": "t", "subsections":
+                          [{"name": "Stickers", "items": []}]}]}
+    row = {"Status": "ACCEPT", "Section": "5", "Subsection": "Stickers",
+           "Item": "Shark stickers", "Age": "Kids", "Link": "https://shop.com/p",
+           "Approx. price": "£3", "Description": "A sheet of stickers.",
+           "Suggested by": "Simon Dedman",
+           "NGO / proceeds to conservation?": "", "Image pick": "", "Queue id": "q0001"}
+    new_id = intake_apply.apply_row(row, data)
+    assert data["sections"][0]["subsections"][0]["items"][0]["item"] == "Shark stickers"
+    assert new_id
+
+
+# --- Adding the NGO? column must not disturb any header intake_apply reads
+# by name: it inserts before, and reads none of the new column itself. ---
+
+HEADERS_READ_BY_NAME = ["Status", "Section", "Subsection", "Item", "Age", "Link",
+                        "Approx. price", "Description", "Suggested by",
+                        "NGO / proceeds to conservation?", "Image pick", "Queue id"]
+
+
+def test_every_header_intake_apply_reads_by_name_still_exists_verbatim():
+    headers = [h for h, *_ in intake_sheet.COLUMNS]
+    for h in HEADERS_READ_BY_NAME:
+        assert h in headers, f"{h!r} missing from intake_sheet.COLUMNS"
+
+
+def test_ngo_flag_column_is_not_required_and_does_not_break_a_round_trip(workbook):
+    """NGO? is a filtering aid only; an ACCEPT row must still apply cleanly
+    whatever its NGO? cell says."""
+    path = workbook([sheet_row()], ["ACCEPT"], ["Bamboo socks."])
+    rows = intake_apply.read_workbook(path)
+    assert "NGO?" in rows[0]
+    assert intake_apply.validate(rows, {"q0001": sheet_row()}) == []

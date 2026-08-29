@@ -90,6 +90,25 @@ def _jsonld(soup):
     return out
 
 
+# Amazon's own <title> tag reads "Amazon.com: <product name> : <breadcrumb
+# category>", which is what a reader following the link into the shared
+# document would rather not see twice over. #productTitle carries just the
+# product name, so it is preferred; the stripping below is a fallback for a
+# page where #productTitle is missing but the <title> tag still carries the
+# same wrapping, applied only when the "Amazon.com: " prefix is actually
+# present, so an unrelated shop's legitimately colon-bearing title is never
+# touched.
+_AMAZON_TITLE_PREFIX = re.compile(r"^Amazon\.com:\s*", re.I)
+
+
+def _clean_amazon_title(text):
+    if not _AMAZON_TITLE_PREFIX.match(text):
+        return text
+    text = _AMAZON_TITLE_PREFIX.sub("", text)
+    text = re.sub(r"\s*:\s*[^:]*$", "", text)
+    return text.strip()
+
+
 def extract_title(soup):
     for node in _jsonld(soup):
         if node.get("@type") in ("Product", "Book") and node.get("name"):
@@ -97,8 +116,11 @@ def extract_title(soup):
     og = soup.find("meta", property="og:title")
     if og and og.get("content"):
         return og["content"].strip()
+    amazon_title = soup.find(id="productTitle")
+    if amazon_title and amazon_title.get_text(strip=True):
+        return amazon_title.get_text(strip=True)
     if soup.title and soup.title.string:
-        return soup.title.string.strip()
+        return _clean_amazon_title(soup.title.string.strip())
     return ""
 
 

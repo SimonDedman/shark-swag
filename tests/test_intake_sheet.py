@@ -1,5 +1,6 @@
 import openpyxl
 import pytest
+from openpyxl.utils import get_column_letter
 
 import intake_sheet
 import pool
@@ -354,3 +355,208 @@ def test_sheet_for_queue_ignores_a_sheet_for_a_different_set(tmp_path, monkeypat
     assert was_built is True
     assert path != stale
     assert intake_sheet.sheet_queue_ids(path) == {"q0001"}
+
+
+# --- Workbook dropdowns: a visible Lists tab, and data validation on Status,
+# Section, Subsection, Age, and NGO?, each pointing at a Lists range rather
+# than an inline "a,b,c" list (which caps at 255 characters and Section
+# alone would exceed it). ---
+
+def _dv_for_column(ws, headers, header):
+    letter = get_column_letter(headers.index(header) + 1)
+    for dv in ws.data_validations.dataValidation:
+        ref_start = str(dv.sqref).split(":")[0]
+        if "".join(ch for ch in ref_start if ch.isalpha()) == letter:
+            return dv
+    return None
+
+
+def test_lists_tab_exists_ordered_after_info_and_review(book):
+    assert book.sheetnames == ["Info", "Review", "Lists"]
+
+
+def test_lists_tab_is_visible_not_hidden(book):
+    assert book["Lists"].sheet_state == "visible"
+
+
+def test_lists_tab_headings_are_bold(book):
+    ws = book["Lists"]
+    present = [c.value for c in ws[1] if c.value]
+    for name in ("Status", "Section", "NGO?", "Age", "All subsections"):
+        assert name in present
+    for cell in ws[1]:
+        if cell.value:
+            assert cell.font.bold is True
+
+
+def test_section_choices_and_label_are_derived_from_items_json():
+    assert ("5", "5. \U0001f3a8 Arts, crafts & stationery") in intake_sheet.section_choices()
+    assert intake_sheet.section_label("5") == "5. \U0001f3a8 Arts, crafts & stationery"
+
+
+def test_section_label_blank_stays_blank():
+    assert intake_sheet.section_label("") == ""
+
+
+def test_section_label_passes_an_unknown_number_through_unchanged():
+    assert intake_sheet.section_label("99") == "99"
+
+
+def test_section_cell_carries_the_full_descriptor(book):
+    ws = book["Review"]
+    headers = [c.value for c in ws[1]]
+    value = ws.cell(row=2, column=headers.index("Section") + 1).value
+    assert value == "1. \U0001f455 Clothing & accessories"
+
+
+def test_a_blank_section_stays_blank_in_the_sheet(book):
+    ws = book["Review"]
+    headers = [c.value for c in ws[1]]
+    value = ws.cell(row=3, column=headers.index("Section") + 1).value
+    assert value in (None, "")
+
+
+def test_guess_ngo_flag_reads_donation_wording_as_yes():
+    assert intake_sheet.guess_ngo_flag("5% of profits go to the Shark Trust.") == "Yes"
+
+
+def test_guess_ngo_flag_reads_a_stated_absence_as_no():
+    assert intake_sheet.guess_ngo_flag("No donation is made from this product.") == "No"
+
+
+def test_guess_ngo_flag_is_not_stated_when_ngo_text_is_blank():
+    assert intake_sheet.guess_ngo_flag("") == "Not stated"
+
+
+def test_ngo_flag_column_is_prefilled_from_ngo_text(book):
+    ws = book["Review"]
+    headers = [c.value for c in ws[1]]
+    assert ws.cell(row=2, column=headers.index("NGO?") + 1).value == "Yes"
+    assert ws.cell(row=3, column=headers.index("NGO?") + 1).value == "Not stated"
+
+
+def test_ngo_flag_column_sits_immediately_before_the_ngo_text_column():
+    headers = [h for h, *_ in intake_sheet.COLUMNS]
+    i = headers.index("NGO?")
+    assert headers[i + 1] == "NGO / proceeds to conservation?"
+
+
+def test_compound_age_values_already_in_the_document_are_in_the_age_list():
+    """An existing value such as 'Kids / Youth / Adult' must never fail its
+    own dropdown."""
+    ages = intake_sheet.distinct_ages()
+    assert "Kids / Youth / Adult" in ages
+    assert "Baby & Toddler" in ages
+
+
+def test_status_dropdown_points_at_a_lists_range_not_an_inline_list(book):
+    ws = book["Review"]
+    headers = [c.value for c in ws[1]]
+    dv = _dv_for_column(ws, headers, "Status")
+    assert dv is not None
+    assert dv.type == "list"
+    assert dv.formula1 == "Lists!$A$2:$A$4"
+    assert '"' not in dv.formula1
+
+
+def test_section_dropdown_points_at_a_lists_range_not_an_inline_list(book):
+    ws = book["Review"]
+    headers = [c.value for c in ws[1]]
+    dv = _dv_for_column(ws, headers, "Section")
+    assert dv.formula1.startswith("Lists!$")
+    assert '"' not in dv.formula1
+
+
+def test_ngo_flag_dropdown_points_at_a_lists_range(book):
+    ws = book["Review"]
+    headers = [c.value for c in ws[1]]
+    dv = _dv_for_column(ws, headers, "NGO?")
+    assert dv.formula1 == "Lists!$C$2:$C$4"
+
+
+def test_age_dropdown_points_at_a_lists_range_sized_to_the_distinct_ages(book):
+    ws = book["Review"]
+    headers = [c.value for c in ws[1]]
+    dv = _dv_for_column(ws, headers, "Age")
+    n = len(intake_sheet.distinct_ages())
+    assert dv.formula1 == f"Lists!$D$2:$D${n + 1}"
+
+
+def test_subsection_dropdown_uses_indirect_and_named_ranges_by_default(book):
+    assert intake_sheet.DEPENDENT_SUBSECTION_DROPDOWN is True
+    ws = book["Review"]
+    headers = [c.value for c in ws[1]]
+    dv = _dv_for_column(ws, headers, "Subsection")
+    section_letter = get_column_letter(headers.index("Section") + 1)
+    assert dv.formula1 == (f'INDIRECT("sub_"&LEFT(${section_letter}2&".",'
+                           f'FIND(".",${section_letter}2&".")-1))')
+
+
+def test_named_ranges_exist_for_every_section(tmp_path):
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([ROW], path)
+    wb = openpyxl.load_workbook(path)
+    for number, _label in intake_sheet.section_choices():
+        name = f"sub_{number}"
+        assert name in wb.defined_names
+        assert wb.defined_names[name].attr_text.startswith("Lists!$")
+
+
+def test_subsection_dropdown_falls_back_to_a_flat_list_when_disabled(tmp_path, monkeypatch):
+    """DEPENDENT_SUBSECTION_DROPDOWN is the fallback constant: flip it to
+    False if LibreOffice ever mishandles the INDIRECT()-based filtering."""
+    monkeypatch.setattr(intake_sheet, "DEPENDENT_SUBSECTION_DROPDOWN", False)
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([ROW], path)
+    wb = openpyxl.load_workbook(path)
+    ws = wb["Review"]
+    headers = [c.value for c in ws[1]]
+    dv = _dv_for_column(ws, headers, "Subsection")
+    assert dv.formula1.startswith("Lists!$")
+    assert "INDIRECT" not in dv.formula1
+
+    lst = wb["Lists"]
+    col = next(c.column for c in lst[1] if c.value == "All subsections")
+    letter = get_column_letter(col)
+    assert dv.formula1.startswith(f"Lists!${letter}$2:${letter}$")
+
+
+def test_dropdown_arrow_is_shown_after_a_round_trip(book):
+    """openpyxl's showDropDown is really 'hide the arrow' (its own alias is
+    hide_drop_down), so the arrow only shows when this reads False/None -
+    trust the reopened file, not the attribute that was set."""
+    ws = book["Review"]
+    assert any(ws.data_validations.dataValidation)
+    for dv in ws.data_validations.dataValidation:
+        assert dv.showDropDown in (None, False)
+
+
+def test_dropdowns_carry_helpful_error_and_prompt_text(book):
+    ws = book["Review"]
+    for dv in ws.data_validations.dataValidation:
+        assert dv.showErrorMessage is True
+        assert dv.error
+        assert dv.errorTitle
+        assert dv.prompt
+        assert dv.promptTitle
+
+
+def test_validation_range_extends_past_the_data_with_a_margin(tmp_path):
+    rows = [ROW, ROW, ROW]
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook(rows, path)
+    wb = openpyxl.load_workbook(path)
+    ws = wb["Review"]
+    headers = [c.value for c in ws[1]]
+    dv = _dv_for_column(ws, headers, "Status")
+    end_ref = str(dv.sqref).split(":")[1]
+    end_row = int("".join(ch for ch in end_ref if ch.isdigit()))
+    assert end_row >= len(rows) + 1 + intake_sheet.VALIDATION_ROW_MARGIN
+
+
+def test_write_workbook_with_no_rows_still_builds_lists_and_validations(tmp_path):
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([], path)
+    wb = openpyxl.load_workbook(path)
+    assert "Lists" in wb.sheetnames
+    assert any(wb["Review"].data_validations.dataValidation)

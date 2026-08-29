@@ -19,6 +19,26 @@ def test_title_falls_back_to_the_title_tag():
     assert intake_extract.extract_title(soup("itemprop_product.html")) == "Shark socks"
 
 
+# --- Item title: Amazon's own <title> tag reads "Amazon.com: <name> :
+# <category>", which is what would otherwise go verbatim into the shared
+# document. #productTitle carries just the product name. ---
+
+REAL_NAME = ("Hide & Drink, Zippered Coin Pouch, Shark Shaped Case, Stuffed Animal, "
+             "Bank, Change Bag, Pencil Purse, Shark Shaped Cable Holder, Full Grain "
+             "Leather, Handmade Wallet, Charcoal Black")
+
+
+def test_title_prefers_amazon_producttitle_over_the_title_tag():
+    assert intake_extract.extract_title(soup("amazon_producttitle.html")) == REAL_NAME
+
+
+def test_title_tag_fallback_strips_amazon_prefix_and_category_suffix():
+    """No #productTitle on the page: the <title> tag itself is
+    "Amazon.com: <name> : Clothing, Shoes & Jewelry", and only the name
+    should reach the document."""
+    assert intake_extract.extract_title(soup("amazon_title_only.html")) == REAL_NAME
+
+
 def test_price_from_json_ld_is_formatted_in_house_style():
     price, source = intake_extract.extract_price(soup("jsonld_product.html"),
                                                  "https://example.com/p")
