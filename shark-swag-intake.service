@@ -1,0 +1,16 @@
+[Unit]
+Description=Shark swag email intake (IMAP IDLE watcher)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/media/simon/data/Projects/shark-swag
+ExecStart=/home/simon/.venvs/scrape/bin/python /media/simon/data/Projects/shark-swag/intake_watch.py
+Restart=always
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
