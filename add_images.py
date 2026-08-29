@@ -8,41 +8,34 @@
 Edited in place rather than rebuilt from build_docx.py so the manual wording
 changes already made in the Gaps section survive.
 """
-import copy, json, re, sys
-from pathlib import Path
+import copy, re, sys
 
 import docx
 from docx.shared import Pt, Inches, Emu
 from PIL import Image
 
-
-ROOT = Path("/media/simon/data/Projects/shark-swag")
-FIN = ROOT / "images" / "final"
-DOC = ROOT / "shark-swag-suggestions.docx"
+from entries import iter_entries
+from paths import FINAL, DOCX
 
 ROW_H_IN = 1.34          # 8 lines of 10.5pt Calibri at 1.15 line spacing
 MAX_ROW_W_IN = 6.4       # usable width inside the default 1in margins
 GAP_IN = 0.08
 
 
-def entry_key(order, existing_names):
-    """items.json order, with the four pre-existing doc entries appended -
-    the same order picks.py numbers them in."""
-    return order
+def name_to_ids():
+    """Item name to the ids that carry it, in id order.
+
+    The docx is matched by name because that is what the heading line holds,
+    but the images are found by id, so inserting an entry cannot shift them.
+    """
+    mapping = {}
+    for e in sorted(iter_entries(), key=lambda e: int(e.id[1:])):
+        mapping.setdefault(e.item, []).append(e.id)
+    return mapping
 
 
-def build_order():
-    data = json.loads((ROOT / "items.json").read_text())
-    names = []
-    for s in data["sections"]:
-        for sub in s["subsections"]:
-            for it in sub["items"]:
-                names.append(it["item"])
-    names += ["SPHYRNAS — tees, hoodies, hats, accessories",
-              "Sharks Preschool Activity Book",
-              "Underwater Photography and Editing Ebooks",
-              "Colouring & Facts Book (currently only available as PDF)"]
-    return names
+def images_for(entry_id):
+    return sorted(FINAL.glob(f"{entry_id}_*.jpg"))
 
 
 def insert_after(paragraph, doc):
@@ -54,8 +47,8 @@ def insert_after(paragraph, doc):
 
 
 def main():
-    names = build_order()
-    doc = docx.Document(DOC)
+    mapping = name_to_ids()
+    doc = docx.Document(DOCX)
     paras = doc.paragraphs
 
     # locate each entry: the "> name" paragraph and its NGO line
@@ -77,11 +70,6 @@ def main():
             i += 1
     print(f"{len(entries)} entries found in the docx")
 
-    # match docx order to picks order by the item name on the heading line
-    name_to_idx = {}
-    for n, nm in enumerate(names, 1):
-        name_to_idx.setdefault(nm, []).append(n)
-
     used, placed, missing, headings = set(), 0, [], 0
     for head, ngo in entries:
         raw = head.text[2:]
@@ -92,14 +80,14 @@ def main():
         head.paragraph_format.space_after = Pt(2)
         headings += 1
 
-        cands = [k for k in name_to_idx.get(nm, []) if k not in used]
+        cands = [i for i in mapping.get(nm, []) if i not in used]
         if not cands:
             missing.append(nm)
             continue
-        idx = cands[0]
-        used.add(idx)
+        entry_id = cands[0]
+        used.add(entry_id)
 
-        files = sorted(FIN.glob(f"e{idx:02d}_*.jpg"))
+        files = images_for(entry_id)
         if not files or ngo is None:
             continue
 
@@ -118,7 +106,7 @@ def main():
                                     height=Inches(ROW_H_IN * scale))
         placed += 1
 
-    doc.save(DOC)
+    doc.save(DOCX)
     print(f"{headings} entry headings promoted to Heading 3")
     print(f"{placed} image rows inserted")
     if missing:
