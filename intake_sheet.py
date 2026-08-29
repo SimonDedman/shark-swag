@@ -11,7 +11,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from PIL import Image, ImageDraw, ImageFont
@@ -263,5 +263,66 @@ def build(path=None, force=False):
     return path
 
 
+def sheet_queue_ids(path):
+    """The set of queue ids in an existing review workbook's Review tab."""
+    wb = load_workbook(path, read_only=True, data_only=True)
+    try:
+        ws = wb["Review"]
+        headers = [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))]
+        col = headers.index("Queue id")
+        return {str(row[col]) for row in ws.iter_rows(min_row=2, values_only=True)
+                if row[col]}
+    finally:
+        wb.close()
+
+
+def sheet_for_queue():
+    """Which workbook a click on the notification, or the launcher, should
+    open. Returns (path, built): built says whether build() had to run.
+
+    Reuses an existing intake/review_*.xlsx whose queue ids exactly match the
+    pending queue, newest first, because Simon may already have typed
+    description prose into it and a rebuild would silently discard that.
+    Anything else - nothing pending, or every existing sheet stale or for a
+    different set - means a fresh sheet through the ordinary build().
+    """
+    rows = intake_queue.load_queue()
+    if not rows:
+        return None, False
+    pending = {row["queue_id"] for row in rows}
+    candidates = sorted(INTAKE.glob("review_*.xlsx"),
+                         key=lambda p: p.stat().st_mtime, reverse=True)
+    for path in candidates:
+        try:
+            ids = sheet_queue_ids(path)
+        except Exception:
+            # Unreadable is not a match; fall through to the next candidate,
+            # or to building fresh, rather than opening something broken.
+            continue
+        if ids == pending:
+            return path, False
+    return build(), True
+
+
+# Sentinel exit code for --open-review: distinguishes "nothing pending" (a
+# normal outcome the caller should announce) from a real crash, which must
+# propagate rather than being read as "nothing to review".
+EMPTY_QUEUE_EXIT = 3
+
+
 if __name__ == "__main__":
-    build(force="--force" in sys.argv)
+    if "--open-review" in sys.argv:
+        import contextlib
+        import io
+        # build(), reached via sheet_for_queue(), prints its own progress
+        # line; --open-review's contract with its caller is that stdout
+        # carries exactly one line, so that noise is discarded rather than
+        # mixed in with the path.
+        with contextlib.redirect_stdout(io.StringIO()):
+            path, _built = sheet_for_queue()
+        if path is None:
+            print("queue is empty, nothing to review")
+            sys.exit(EMPTY_QUEUE_EXIT)
+        print(path)
+    else:
+        build(force="--force" in sys.argv)

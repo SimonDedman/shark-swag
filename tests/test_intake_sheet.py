@@ -205,3 +205,68 @@ def test_build_on_a_corrupt_queue_raises_rather_than_saying_it_is_empty(
     with pytest.raises(intake_sheet.intake_queue.CorruptStateError):
         intake_sheet.build()
     assert "queue is empty" not in capsys.readouterr().out
+
+
+# --- New feature: sheet_for_queue() picks which workbook a click should open.
+# It must never open a stale sheet, and must never rebuild (and so risk
+# clobbering) one that already matches the pending queue exactly. ---
+
+def test_sheet_queue_ids_reads_the_queue_id_column(tmp_path):
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([ROW, BLOCKED], path)
+    assert intake_sheet.sheet_queue_ids(path) == {"q0001", "q0002"}
+
+
+def test_sheet_for_queue_with_an_empty_queue_returns_none(tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_sheet, "INTAKE", tmp_path)
+    monkeypatch.setattr(intake_sheet.intake_queue, "QUEUE", tmp_path / "queue.json")
+    intake_sheet.intake_queue.save_queue([])
+    assert intake_sheet.sheet_for_queue() == (None, False)
+
+
+def test_sheet_for_queue_reuses_an_exact_match(tmp_path, monkeypatch):
+    """A sheet whose queue ids equal the pending set is reused untouched, so
+    description prose already typed into it is never lost."""
+    monkeypatch.setattr(intake_sheet, "INTAKE", tmp_path)
+    monkeypatch.setattr(intake_sheet.intake_queue, "QUEUE", tmp_path / "queue.json")
+    intake_sheet.intake_queue.save_queue(
+        [dict(ROW, candidates=[]), dict(BLOCKED, candidates=[])])
+
+    built = intake_sheet.build()
+    built.write_bytes(built.read_bytes() + b"")  # stands in for edited prose
+    marker = built.stat().st_size
+
+    path, was_built = intake_sheet.sheet_for_queue()
+    assert path == built
+    assert was_built is False
+    assert path.stat().st_size == marker
+
+
+def test_sheet_for_queue_builds_fresh_when_a_new_submission_has_arrived(
+        tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_sheet, "INTAKE", tmp_path)
+    monkeypatch.setattr(intake_sheet.intake_queue, "QUEUE", tmp_path / "queue.json")
+    intake_sheet.intake_queue.save_queue([dict(ROW, candidates=[])])
+    first = intake_sheet.build()
+
+    intake_sheet.intake_queue.save_queue(
+        [dict(ROW, candidates=[]), dict(BLOCKED, candidates=[])])
+    path, was_built = intake_sheet.sheet_for_queue()
+
+    assert was_built is True
+    assert path != first
+    assert intake_sheet.sheet_queue_ids(path) == {"q0001", "q0002"}
+
+
+def test_sheet_for_queue_ignores_a_sheet_for_a_different_set(tmp_path, monkeypatch):
+    monkeypatch.setattr(intake_sheet, "INTAKE", tmp_path)
+    monkeypatch.setattr(intake_sheet.intake_queue, "QUEUE", tmp_path / "queue.json")
+    intake_sheet.intake_queue.save_queue([dict(BLOCKED, candidates=[])])
+    stale = intake_sheet.build()
+
+    intake_sheet.intake_queue.save_queue([dict(ROW, candidates=[])])
+    path, was_built = intake_sheet.sheet_for_queue()
+
+    assert was_built is True
+    assert path != stale
+    assert intake_sheet.sheet_queue_ids(path) == {"q0001"}

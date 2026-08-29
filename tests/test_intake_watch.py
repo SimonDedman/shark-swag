@@ -1,4 +1,6 @@
 import json
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -203,3 +205,87 @@ def test_catch_up_does_not_swallow_a_corrupt_state_file(isolated, monkeypatch):
     client = _FakeClient((MAIL / "bare_url.eml").read_bytes())
     with pytest.raises(intake_queue.CorruptStateError):
         intake_watch.catch_up(client)
+
+
+# --- New feature: a clickable notification, wired to the review launcher.
+# notify-send --wait blocks until dismissed or clicked, so it must run off
+# the IDLE loop's own thread, must do nothing under --dry-run or for a zero
+# count, and an ignored or failed notification must never take the watcher
+# down or leave anything hanging. ---
+
+def test_notify_spins_no_thread_for_a_zero_count(isolated, monkeypatch):
+    def boom(*a, **k):
+        raise AssertionError("should not spin a thread for a zero count")
+    monkeypatch.setattr(intake_watch.threading, "Thread", boom)
+    intake_watch.notify(0)
+
+
+def test_notify_spins_no_thread_under_dry_run(isolated, monkeypatch):
+    def boom(*a, **k):
+        raise AssertionError("should not spin a thread under --dry-run")
+    monkeypatch.setattr(intake_watch.threading, "Thread", boom)
+    intake_watch.notify(5, dry_run=True)
+
+
+def test_notify_returns_before_the_notification_is_dismissed(isolated, monkeypatch):
+    """--wait blocks; notify() itself must not, or a click hangs the daemon
+    that is supposed to be watching the mailbox."""
+    released = threading.Event()
+
+    def slow_run(*a, **k):
+        released.wait(timeout=2)
+        return type("R", (), {"stdout": ""})()
+
+    monkeypatch.setattr(intake_watch.subprocess, "run", slow_run)
+    start = time.time()
+    intake_watch.notify(3)
+    assert time.time() - start < 0.5
+    released.set()
+
+
+def test_notify_and_wait_launches_the_review_script_on_the_open_action(
+        isolated, monkeypatch):
+    launched = []
+    monkeypatch.setattr(intake_watch, "_launch_review", lambda: launched.append(True))
+    monkeypatch.setattr(intake_watch.subprocess, "run",
+                         lambda *a, **k: type("R", (), {"stdout": "open\n"})())
+    intake_watch._notify_and_wait(2)
+    assert launched == [True]
+
+
+def test_notify_and_wait_does_nothing_when_the_notification_is_dismissed(
+        isolated, monkeypatch):
+    launched = []
+    monkeypatch.setattr(intake_watch, "_launch_review", lambda: launched.append(True))
+    monkeypatch.setattr(intake_watch.subprocess, "run",
+                         lambda *a, **k: type("R", (), {"stdout": ""})())
+    intake_watch._notify_and_wait(2)
+    assert launched == []
+
+
+def test_notify_and_wait_survives_a_missing_notify_send(isolated, monkeypatch):
+    def fake_run(*a, **k):
+        raise FileNotFoundError("notify-send: command not found")
+    monkeypatch.setattr(intake_watch.subprocess, "run", fake_run)
+    intake_watch._notify_and_wait(1, dry_run=True)  # must not raise
+
+
+def test_launch_review_starts_the_script_detached_and_unwaited(isolated, monkeypatch):
+    calls = []
+
+    def fake_popen(args, **kwargs):
+        calls.append((args, kwargs))
+        return object()
+
+    monkeypatch.setattr(intake_watch.subprocess, "Popen", fake_popen)
+    intake_watch._launch_review()
+    args, kwargs = calls[0]
+    assert args == [str(intake_watch.REVIEW_SCRIPT)]
+    assert kwargs["start_new_session"] is True
+
+
+def test_launch_review_survives_a_missing_script(isolated, monkeypatch):
+    def fake_popen(*a, **k):
+        raise OSError("no such file or directory")
+    monkeypatch.setattr(intake_watch.subprocess, "Popen", fake_popen)
+    intake_watch._launch_review()  # must not raise

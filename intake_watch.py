@@ -11,11 +11,13 @@ harness a pgrep pattern matches the searching command itself and always says
 yes.
 """
 import hashlib
-import os
 import ssl
+import subprocess
 import sys
+import threading
 import time
 from datetime import datetime
+from pathlib import Path
 
 from imapclient import IMAPClient
 
@@ -36,6 +38,9 @@ RECONNECT_BACKOFF = (30, 60, 120, 300, 600)
 # daemon says why once and stays down rather than looping with the reason
 # buried in the journal.
 EXIT_CONFIG = 78                # sysexits.h EX_CONFIG
+
+REVIEW_SCRIPT = Path.home() / ".local" / "bin" / "shark-swag-review"
+NOTIFY_ACTION_TIMEOUT = 3600     # a forgotten notification must not be waited on forever
 
 
 def log(message, dry_run=False):
@@ -78,10 +83,41 @@ def credentials():
     return address, password
 
 
-def notify(count):
-    if not count:
+def _launch_review():
+    """Hand off to the review launcher and do not wait on it: it opens a
+    spreadsheet application, which can run for hours."""
+    try:
+        subprocess.Popen([str(REVIEW_SCRIPT)], stdout=subprocess.DEVNULL,
+                          stderr=subprocess.DEVNULL, start_new_session=True)
+    except OSError:
+        pass
+
+
+def _notify_and_wait(count, dry_run=False):
+    """The blocking half of notify(): runs off the caller's thread, because
+    --wait blocks until the notification is dismissed or its action is
+    clicked, which must never stall the IDLE loop. A notification that is
+    ignored, whose daemon lacks action support, or that errors outright must
+    still leave the watcher running, so every failure here is swallowed."""
+    try:
+        result = subprocess.run(
+            ["notify-send", "--wait", "--action=open=Open review sheet",
+             "Shark swag", f"{count} new submission(s) staged, ready to review"],
+            capture_output=True, text=True, timeout=NOTIFY_ACTION_TIMEOUT)
+        if result.stdout.strip() == "open":
+            _launch_review()
+    except Exception as e:
+        log(f"notification action failed harmlessly: {type(e).__name__}: {e}",
+            dry_run=dry_run)
+
+
+def notify(count, dry_run=False):
+    """Notify that something was staged, with a button that opens the review
+    sheet. Does nothing for a zero count or under --dry-run: a dry run must
+    leave no trace, a real desktop notification included."""
+    if not count or dry_run:
         return
-    os.system(f'notify-send "Shark swag" "{count} new submission(s) staged" >/dev/null 2>&1')
+    threading.Thread(target=_notify_and_wait, args=(count, dry_run), daemon=True).start()
 
 
 def message_key(submission, raw):
@@ -170,7 +206,7 @@ def watch(dry_run=False):
                 log(f"connected, watching {FOLDER}", dry_run=dry_run)
                 staged = catch_up(client, dry_run)
                 beat(dry_run=dry_run)
-                notify(staged)
+                notify(staged, dry_run=dry_run)
                 log(f"catch-up staged {staged} row(s)", dry_run=dry_run)
 
                 last_sweep = time.time()
@@ -188,7 +224,7 @@ def watch(dry_run=False):
                             log(f"sweep staged {staged} row(s)", dry_run=dry_run)
                         elif staged:
                             log(f"push staged {staged} row(s)", dry_run=dry_run)
-                        notify(staged)
+                        notify(staged, dry_run=dry_run)
                     beat(dry_run=dry_run)
         except KeyboardInterrupt:
             log("stopped by hand", dry_run=dry_run)
