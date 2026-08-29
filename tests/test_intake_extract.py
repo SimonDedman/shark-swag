@@ -124,3 +124,67 @@ def test_http_to_https_same_host_redirect_is_ok():
         200, (PAGES / "jsonld_product.html").read_text(),
         "http://example.com/products/x",
         "https://example.com/products/x") == "OK"
+
+
+# --- Important 9: a minified page offers the sentence pattern no boundary to
+# stop at, so an unguarded match glues unrelated text either side of the
+# keyword and the result is copied verbatim into the shared document as a
+# statement about where money goes. ---
+
+def test_a_minified_page_does_not_manufacture_a_charity_claim():
+    """Nav, breadcrumbs, bullet lists, and a shipping notice all end up inside
+    one 'sentence' around the word conservation. It is not a sentence, and no
+    claim is better than an invented one."""
+    text = soup("minified.html").get_text(" ")
+    assert intake_extract.extract_ngo(text) == ""
+
+
+def test_a_run_of_lowercase_page_furniture_is_not_a_sentence():
+    text = soup("minified_lowercase.html").get_text(" ")
+    assert intake_extract.extract_ngo(text) == ""
+
+
+def test_the_captured_sentence_is_capped_at_three_hundred_characters():
+    long_sentence = ("Every purchase donates " + "money to the reef " * 30).strip() + "."
+    assert len(long_sentence) > intake_extract.MAX_NGO_CHARS
+    assert intake_extract.extract_ngo(long_sentence) == ""
+
+
+def test_a_real_sentence_after_a_rejected_one_is_still_found():
+    """Rejecting a glued run must not cost the genuine sentence behind it."""
+    text = ("free shipping proceeds apply to all baskets. "
+            "Ten per cent of every sale is donated to the Shark Trust.")
+    assert intake_extract.extract_ngo(text) == \
+        "Ten per cent of every sale is donated to the Shark Trust."
+
+
+# --- Important 4: a crashed image harvest and a page with no usable images
+# both leave the Contact sheet cell blank, so extract() must not swallow the
+# difference into a field nobody reads. ---
+
+def test_a_crashed_image_harvest_is_reported_not_swallowed(monkeypatch):
+    monkeypatch.setattr(intake_extract.harvest, "fetch_full",
+                        lambda url: (200, (PAGES / "jsonld_product.html").read_text(),
+                                     url, "fetched"))
+
+    def boom(url):
+        raise TimeoutError("read timed out")
+    monkeypatch.setattr(intake_extract.harvest, "harvest", boom)
+
+    facts = intake_extract.extract("https://example.com/products/x")
+    assert facts.status == "OK"
+    assert facts.candidates == []
+    assert "IMAGE HARVEST FAILED" in facts.note
+    assert "TimeoutError" in facts.note
+
+
+def test_a_page_with_no_images_says_so_differently(monkeypatch):
+    monkeypatch.setattr(intake_extract.harvest, "fetch_full",
+                        lambda url: (200, (PAGES / "jsonld_product.html").read_text(),
+                                     url, "fetched"))
+    monkeypatch.setattr(intake_extract.harvest, "harvest",
+                        lambda url: ([], "no candidates on the page"))
+    facts = intake_extract.extract("https://example.com/products/x")
+    assert facts.candidates == []
+    assert "FAILED" not in facts.note
+    assert "0 candidate(s)" in facts.note

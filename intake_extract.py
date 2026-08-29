@@ -19,9 +19,16 @@ CHALLENGE = re.compile(
     r"just a moment|cf-browser-verification|captcha|access denied|"
     r"unusual traffic|are you a robot|enable javascript and cookies", re.I)
 
-NGO_SENTENCE = re.compile(
-    r"[^.!?\n]*\b(?:donat\w*|proceeds|charitable|charity|conservation|"
-    r"non-?profit|nonprofit|foundation|\d{1,3}\s?%\s+of)\b[^.!?\n]*[.!?]", re.I)
+NGO_KEYWORD = (r"(?:donat\w*|proceeds|charitable|charity|conservation|"
+               r"non-?profit|nonprofit|foundation|\d{1,3}\s?%\s+of)")
+NGO_SENTENCE = re.compile(rf"[^.!?\n]*\b{NGO_KEYWORD}\b[^.!?\n]*[.!?]", re.I)
+
+# A "sentence" longer than this is not one. On a page with no whitespace
+# between tags there are almost no sentence boundaries in the extracted text,
+# so the pattern can run from a nav menu, through the keyword, into an
+# unrelated paragraph, and the glued result is then copied verbatim into the
+# shared document as a factual statement about where money goes.
+MAX_NGO_CHARS = 300
 
 SYMBOL = {"USD": "$", "GBP": "£", "EUR": "€", "AUD": "AUD ", "CAD": "CAD "}
 
@@ -135,17 +142,41 @@ def extract_price(soup, url):
     return "", ""
 
 
+def _sentence_shaped(candidate):
+    """Does this run of text span the start of a real sentence?
+
+    A capital letter at the start, or immediately after whitespace, is the
+    cheapest available evidence that the run contains prose rather than a
+    stretch of lowercase navigation, slugs, and facet labels swept up because
+    a minified page offered no sentence boundary to stop at. It is weak
+    evidence, which is why the length cap does the heavier work.
+    """
+    for i, ch in enumerate(candidate):
+        if ch.isupper() and (i == 0 or candidate[i - 1].isspace()):
+            return True
+    return False
+
+
 def extract_ngo(text):
     """The first sentence that talks about money going somewhere, verbatim.
 
     A statement that no donation is made is as useful as one that says there is,
-    so both are kept.
+    so both are kept. A candidate that is too long to be a sentence, or that
+    shows no sign of being prose, is passed over rather than trimmed: this
+    string is copied into the shared document unaltered, so a half-quote would
+    be worse than no quote. Finding nothing leaves an empty cell, which is not
+    a claim either way.
     """
     # Collapse runs of spaces/tabs but keep newlines: the pattern's [^.!?\n]*
     # relies on \n as a block boundary between unrelated page text (e.g. the
     # <title>) and the paragraph that follows it.
-    m = NGO_SENTENCE.search(re.sub(r"[ \t]+", " ", text or ""))
-    return m.group(0).strip() if m else ""
+    flat = re.sub(r"[ \t]+", " ", text or "")
+    for m in NGO_SENTENCE.finditer(flat):
+        candidate = m.group(0).strip()
+        if len(candidate) > MAX_NGO_CHARS or not _sentence_shaped(candidate):
+            continue
+        return candidate
+    return ""
 
 
 def classify_status(http, text, requested, final):
@@ -182,7 +213,14 @@ def extract(url):
     facts.ngo_text = extract_ngo(soup.get_text(" "))
     try:
         facts.candidates, cnote = harvest.harvest(url)
-        facts.note = f"{note}; images: {cnote}"[:400]
+        facts.note = f"{note}; images: {cnote} ({len(facts.candidates)} candidate(s))"[:400]
     except Exception as e:
-        facts.note = f"{note}; image harvest failed: {type(e).__name__}"
+        # A crashed harvest and a page with no usable images both leave the
+        # Contact sheet cell blank, so the difference has to be said out loud
+        # somewhere a reader will see it: the note reaches the workbook's
+        # Fetch note column.
+        facts.candidates = []
+        facts.note = (f"{note}; IMAGE HARVEST FAILED ({type(e).__name__}: {e}) "
+                      f"- no candidates were collected, which says nothing "
+                      f"about whether this page has usable images")[:400]
     return facts
