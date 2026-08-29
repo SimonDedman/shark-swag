@@ -20,3 +20,6 @@ intake/*.json
 intake/*.xlsx
 intake/*.log
 intake/heartbeat
+
+# Chosen product images: third-party retailer photos, kept local for now
+images/final/
