@@ -4,10 +4,11 @@ from openpyxl.drawing.image import Image as XLImage
 from openpyxl.utils import get_column_letter
 
 import intake_sheet
+import paths
 import pool
 
 
-ROW = dict(queue_id="q0001", message_id="m1", received="2026-08-28T09:14:02-07:00",
+ROW = dict(queue_id="q9001", message_id="m1", received="2026-08-28T09:14:02-07:00",
            sender="Simon Dedman", note="nephew has a pair",
            url="https://shop.com/products/socks", url_norm="https://shop.com/products/socks",
            fetch_status="OK", http=200, fetch_note="fetched", title="Shark socks",
@@ -15,7 +16,7 @@ ROW = dict(queue_id="q0001", message_id="m1", received="2026-08-28T09:14:02-07:0
            ngo_text="5% of profits go to the Shark Trust.", section="1", sub="Adult",
            age="Adult", keyword="socks", duplicate_of="", candidates=[], picked="")
 
-BLOCKED = dict(ROW, queue_id="q0002", fetch_status="BLOCKED", http=403, title="",
+BLOCKED = dict(ROW, queue_id="q9002", fetch_status="BLOCKED", http=403, title="",
                price="", price_source="", ngo_text="", section="", sub="", keyword="")
 
 
@@ -236,7 +237,7 @@ def test_the_drawn_index_labels_follow_the_ranked_candidate_list(tmp_path, monke
 
     row = dict(ROW, candidates=CANDS)
     out = intake_sheet.contact_sheet(row)
-    assert out == tmp_path / "pending_q0001.jpg"
+    assert out == tmp_path / "pending_q9001.jpg"
     assert out.exists()
     # cell 0 is drawn from the first ranked candidate, cell 1 from the second,
     # and so on: the labels are positions in this list, and nothing else.
@@ -287,7 +288,7 @@ def test_build_on_a_corrupt_queue_raises_rather_than_saying_it_is_empty(
         tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(intake_sheet, "INTAKE", tmp_path)
     monkeypatch.setattr(intake_sheet.intake_queue, "QUEUE", tmp_path / "queue.json")
-    (tmp_path / "queue.json").write_text('[{"queue_id": "q0001"}, {"que')
+    (tmp_path / "queue.json").write_text('[{"queue_id": "q9001"}, {"que')
     with pytest.raises(intake_sheet.intake_queue.CorruptStateError):
         intake_sheet.build()
     assert "queue is empty" not in capsys.readouterr().out
@@ -300,7 +301,7 @@ def test_build_on_a_corrupt_queue_raises_rather_than_saying_it_is_empty(
 def test_sheet_queue_ids_reads_the_queue_id_column(tmp_path):
     path = tmp_path / "review.xlsx"
     intake_sheet.write_workbook([ROW, BLOCKED], path)
-    assert intake_sheet.sheet_queue_ids(path) == {"q0001", "q0002"}
+    assert intake_sheet.sheet_queue_ids(path) == {"q9001", "q9002"}
 
 
 def test_sheet_for_queue_with_an_empty_queue_returns_none(tmp_path, monkeypatch):
@@ -341,7 +342,7 @@ def test_sheet_for_queue_builds_fresh_when_a_new_submission_has_arrived(
 
     assert was_built is True
     assert path != first
-    assert intake_sheet.sheet_queue_ids(path) == {"q0001", "q0002"}
+    assert intake_sheet.sheet_queue_ids(path) == {"q9001", "q9002"}
 
 
 def test_sheet_for_queue_ignores_a_sheet_for_a_different_set(tmp_path, monkeypatch):
@@ -355,7 +356,7 @@ def test_sheet_for_queue_ignores_a_sheet_for_a_different_set(tmp_path, monkeypat
 
     assert was_built is True
     assert path != stale
-    assert intake_sheet.sheet_queue_ids(path) == {"q0001"}
+    assert intake_sheet.sheet_queue_ids(path) == {"q9001"}
 
 
 # --- Workbook dropdowns: a visible Lists tab, and data validation on Status,
@@ -483,14 +484,22 @@ def test_age_dropdown_points_at_a_lists_range_sized_to_the_distinct_ages(book):
     assert dv.formula1 == f"Lists!$D$2:$D${n + 1}"
 
 
-def test_subsection_dropdown_uses_indirect_and_named_ranges_by_default(book):
-    assert intake_sheet.DEPENDENT_SUBSECTION_DROPDOWN is True
+def test_subsection_dropdown_uses_the_flat_list_by_default(book):
+    """LibreOffice does not honour the INDIRECT()-based per-section
+    filtering, even though the named ranges it depends on are correct (e.g.
+    sub_5 -> Lists!$I$2:$I$3, holding Kids and Youth) - confirmed on Simon's
+    machine. So the default is the flat "All subsections" list, unfiltered
+    by Section."""
+    assert intake_sheet.DEPENDENT_SUBSECTION_DROPDOWN is False
     ws = book["Review"]
     headers = [c.value for c in ws[1]]
     dv = _dv_for_column(ws, headers, "Subsection")
-    section_letter = get_column_letter(headers.index("Section") + 1)
-    assert dv.formula1 == (f'INDIRECT("sub_"&LEFT(${section_letter}2&".",'
-                           f'FIND(".",${section_letter}2&".")-1))')
+    assert "INDIRECT" not in dv.formula1
+
+    lst = book["Lists"]
+    col = next(c.column for c in lst[1] if c.value == "All subsections")
+    letter = get_column_letter(col)
+    assert dv.formula1.startswith(f"Lists!${letter}$2:${letter}$")
 
 
 def test_named_ranges_exist_for_every_section(tmp_path):
@@ -503,23 +512,22 @@ def test_named_ranges_exist_for_every_section(tmp_path):
         assert wb.defined_names[name].attr_text.startswith("Lists!$")
 
 
-def test_subsection_dropdown_falls_back_to_a_flat_list_when_disabled(tmp_path, monkeypatch):
-    """DEPENDENT_SUBSECTION_DROPDOWN is the fallback constant: flip it to
-    False if LibreOffice ever mishandles the INDIRECT()-based filtering."""
-    monkeypatch.setattr(intake_sheet, "DEPENDENT_SUBSECTION_DROPDOWN", False)
+def test_subsection_dropdown_can_still_use_indirect_when_explicitly_enabled(
+        tmp_path, monkeypatch):
+    """DEPENDENT_SUBSECTION_DROPDOWN = True is the mechanism, kept working
+    even though it is not the default: it is built and correct, and only
+    worth trying again if the workbook is ever opened in Excel rather than
+    LibreOffice."""
+    monkeypatch.setattr(intake_sheet, "DEPENDENT_SUBSECTION_DROPDOWN", True)
     path = tmp_path / "review.xlsx"
     intake_sheet.write_workbook([ROW], path)
     wb = openpyxl.load_workbook(path)
     ws = wb["Review"]
     headers = [c.value for c in ws[1]]
     dv = _dv_for_column(ws, headers, "Subsection")
-    assert dv.formula1.startswith("Lists!$")
-    assert "INDIRECT" not in dv.formula1
-
-    lst = wb["Lists"]
-    col = next(c.column for c in lst[1] if c.value == "All subsections")
-    letter = get_column_letter(col)
-    assert dv.formula1.startswith(f"Lists!${letter}$2:${letter}$")
+    section_letter = get_column_letter(headers.index("Section") + 1)
+    assert dv.formula1 == (f'INDIRECT("sub_"&LEFT(${section_letter}2&".",'
+                           f'FIND(".",${section_letter}2&".")-1))')
 
 
 def test_dropdown_arrow_is_shown_after_a_round_trip(book):
@@ -601,7 +609,7 @@ def test_images_tab_heading_names_the_queue_id_and_title(tmp_path, monkeypatch):
     ws = openpyxl.load_workbook(path)["Images"]
     headings = [c.value for col in ws.iter_cols(min_col=1, max_col=1)
                 for c in col if c.value]
-    assert any("q0001" in h and "Shark socks" in h for h in headings)
+    assert any("q9001" in h and "Shark socks" in h for h in headings)
 
 
 def test_images_tab_notes_a_row_with_no_candidates_rather_than_a_gap(tmp_path, monkeypatch):
@@ -624,22 +632,24 @@ def test_a_second_row_heading_is_never_overlapped_by_the_first_rows_image(
     monkeypatch.setattr(intake_sheet, "SHEETS", tmp_path)
     monkeypatch.setattr(intake_sheet, "download", _stub_download(tmp_path))
 
-    row_a = dict(ROW, queue_id="q0001", candidates=CANDS)
-    row_b = dict(ROW, queue_id="q0002", candidates=CANDS)
+    row_a = dict(ROW, queue_id="q9001", candidates=CANDS)
+    row_b = dict(ROW, queue_id="q9002", candidates=CANDS)
     path = tmp_path / "review.xlsx"
     intake_sheet.write_workbook([row_a, row_b], path)
 
     ws = openpyxl.load_workbook(path)["Images"]
     heading_rows = sorted(
         c.row for col in ws.iter_cols(min_col=1, max_col=1) for c in col
-        if c.value and str(c.value).startswith("q000"))
+        if c.value and str(c.value).startswith("q900"))
     first_heading_row, second_heading_row = heading_rows[0], heading_rows[1]
-    img_height_px = XLImage(str(tmp_path / "pending_q0001.jpg")).height
+    img_height_px = XLImage(str(tmp_path / "pending_q9001.jpg")).height
     min_gap_rows = -(-img_height_px // intake_sheet._ROW_HEIGHT_PX)
     assert second_heading_row - first_heading_row > min_gap_rows
 
 
-def test_contact_sheet_hyperlink_is_a_file_uri(tmp_path, monkeypatch):
+def test_contact_sheet_hyperlink_is_a_real_relationship_not_a_formula(tmp_path, monkeypatch):
+    """The HYPERLINK() formula did nothing when clicked in LibreOffice; a
+    relationship-backed cell.hyperlink is what it actually follows."""
     monkeypatch.setattr(intake_sheet, "SHEETS", tmp_path)
     monkeypatch.setattr(intake_sheet, "download", _stub_download(tmp_path))
 
@@ -648,9 +658,13 @@ def test_contact_sheet_hyperlink_is_a_file_uri(tmp_path, monkeypatch):
 
     ws = openpyxl.load_workbook(path)["Review"]
     headers = [c.value for c in ws[1]]
-    formula = ws.cell(row=2, column=headers.index("Contact sheet") + 1).value
-    assert formula.startswith('=HYPERLINK("file://')
-    assert str(tmp_path) in formula
+    cell = ws.cell(row=2, column=headers.index("Contact sheet") + 1)
+    assert cell.value == "images"
+    assert cell.hyperlink is not None
+    assert cell.hyperlink.target.startswith("file://")
+    assert str(tmp_path) in cell.hyperlink.target
+    assert cell.font.underline == "single"
+    assert cell.font.color.rgb.endswith("0563C1")
 
 
 def test_contact_sheet_cell_stays_blank_when_there_is_no_sheet(tmp_path, monkeypatch):
@@ -673,7 +687,7 @@ def test_build_regenerates_a_deleted_contact_sheet_rather_than_skipping_it(
     intake_sheet.intake_queue.save_queue([dict(ROW, candidates=CANDS)])
 
     workbook_path = intake_sheet.build()
-    sheet_path = tmp_path / "pending_q0001.jpg"
+    sheet_path = tmp_path / "pending_q9001.jpg"
     assert sheet_path.exists()
     sheet_path.unlink()
     assert not sheet_path.exists()
@@ -709,3 +723,36 @@ def test_ensure_contact_sheet_leaves_an_existing_file_untouched(tmp_path, monkey
 def test_ensure_contact_sheet_returns_none_for_a_row_with_no_candidates(tmp_path, monkeypatch):
     monkeypatch.setattr(intake_sheet, "SHEETS", tmp_path)
     assert intake_sheet.ensure_contact_sheet(dict(ROW, candidates=[])) is None
+
+
+# --- The control for tests/conftest.py's autouse isolation guard. A prior
+# test wrote a contact sheet straight into the real images/sheets/, colliding
+# with the id of a real staged submission and overwriting the owner's live
+# review workbook's embedded photo, because the guard was opt-in per test.
+# This test deliberately does NOT patch intake_sheet.SHEETS itself, the way
+# every other contact-sheet test above must remember to - it relies solely on
+# the autouse fixture in conftest.py. If that fixture is ever removed, this
+# is the test that fails, rather than the next real submission's image
+# quietly landing in the wrong place again. ---
+
+def test_isolation_guard_protects_the_real_sheets_dir(monkeypatch):
+    # paths.SHEETS itself is one of the names the autouse fixture redirects,
+    # so it cannot be read here for the real location - it is already
+    # patched by the time this test body runs. paths.ROOT is never
+    # redirected (it names read-only, committed project data), so the real
+    # images/sheets/ path is rebuilt from that instead.
+    real_sheets = paths.ROOT / "images" / "sheets"
+    assert intake_sheet.SHEETS != real_sheets, (
+        "the autouse isolation fixture in conftest.py did not redirect "
+        "intake_sheet.SHEETS away from the real project directory")
+    real_before = set(real_sheets.glob("*")) if real_sheets.exists() else set()
+
+    monkeypatch.setattr(intake_sheet, "download", _stub_download(intake_sheet.SHEETS))
+    row = dict(ROW, queue_id="q9999", candidates=CANDS)
+    out = intake_sheet.contact_sheet(row)
+
+    assert out == intake_sheet.SHEETS / "pending_q9999.jpg"
+    assert out.exists()
+    assert not (real_sheets / "pending_q9999.jpg").exists()
+    real_after = set(real_sheets.glob("*")) if real_sheets.exists() else set()
+    assert real_after == real_before, "a contact sheet reached the real images/sheets/ dir"

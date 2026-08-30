@@ -18,6 +18,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.utils.units import DEFAULT_ROW_HEIGHT, points_to_pixels
 from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.worksheet.datavalidation import DataValidation
+from openpyxl.worksheet.hyperlink import Hyperlink
 from PIL import Image, ImageDraw, ImageFont
 
 import entries
@@ -57,15 +58,23 @@ COLUMNS = [
 ]
 
 EVIDENCE_FILL = PatternFill("solid", fgColor="F2F2F2")
+# Excel's own conventional hyperlink colours: a relationship-backed
+# cell.hyperlink is what LibreOffice actually follows on click, but nothing
+# makes it look clickable on its own, so the font is set to match.
+HYPERLINK_FONT = Font(color="0563C1", underline="single")
 CELL, HDR, COLS = 190, 30, 12
 
-# Flip this to False if LibreOffice ever mishandles the INDIRECT()-based
-# per-section Subsection dropdown on Simon's machine: the fallback is one
-# flat list of every subsection name across every section, with no
-# filtering by Section. Either way, intake_apply.validate() still refuses a
-# subsection that does not belong to the chosen section and names the valid
-# ones, so a dropdown that fails to appear costs typing, never a bad write.
-DEPENDENT_SUBSECTION_DROPDOWN = True
+# The INDIRECT()-based per-section Subsection dropdown is built and correct
+# - the named ranges it depends on are right (sub_5 -> Lists!$I$2:$I$3,
+# holding Kids and Youth) - but Simon confirmed LibreOffice renders it as an
+# empty dropdown on his machine regardless. False falls back to one flat
+# list of every subsection name across every section, with no filtering by
+# Section. Either way, intake_apply.validate() still refuses a subsection
+# that does not belong to the chosen section and names the valid ones, so a
+# dropdown that fails to appear costs typing, never a bad write. Only worth
+# flipping back to True if this workbook is ever opened in Excel instead of
+# LibreOffice.
+DEPENDENT_SUBSECTION_DROPDOWN = False
 
 STATUS_OPTIONS = ["ACCEPT", "REJECT", "HOLD"]
 NGO_OPTIONS = ["Yes", "No", "Not stated"]
@@ -328,6 +337,9 @@ def _info(ws, rows):
         ("Each link was fetched, its title, price, and any sentence about donations "
          "were read off the page, a section and age band were guessed from keywords, "
          "and candidate product images were downloaded into a contact sheet.", False),
+        ("Every contact sheet is embedded in this workbook's own Images tab, not "
+         "only on disk, so the pictures are right here rather than something you "
+         "have to know to go looking for.", False),
         ("Nothing has been written to items.json or the document. No description "
          "prose has been written: that part is yours.", False),
         ("", False),
@@ -532,14 +544,11 @@ def write_workbook(rows, path):
         ws.column_dimensions[get_column_letter(i)].width = width
 
     for r, row in enumerate(rows, 2):
+        sheet_path = None
         for i, (header, _w, key, editable) in enumerate(COLUMNS, 1):
             if header == "Contact sheet":
-                # LibreOffice, which is what actually opens these, wants a
-                # file:// URI here rather than a bare POSIX path - a bare
-                # path opens nothing and gives no error either.
                 sheet_path = ensure_contact_sheet(row)
-                value = (f'=HYPERLINK("{sheet_path.as_uri()}","images")'
-                         if sheet_path else "")
+                value = "images" if sheet_path else ""
             elif header == "Section":
                 value = section_label(row.get(key, ""))
             elif header == "NGO?":
@@ -549,6 +558,15 @@ def write_workbook(rows, path):
             cell = ws.cell(row=r, column=i, value=value)
             if not editable:
                 cell.fill = EVIDENCE_FILL
+            if header == "Contact sheet" and sheet_path:
+                # A relationship-backed hyperlink, not the HYPERLINK()
+                # formula: LibreOffice, which is what actually opens these,
+                # does not reliably follow the formula on click, but does
+                # follow a real hyperlink relationship. file:// is the
+                # target scheme it expects for a local path.
+                cell.hyperlink = Hyperlink(ref=cell.coordinate,
+                                           target=sheet_path.as_uri())
+                cell.font = HYPERLINK_FONT
             if header in ("Description", "NGO / proceeds to conservation?", "Their note"):
                 cell.alignment = Alignment(wrap_text=True, vertical="top")
 
