@@ -406,6 +406,41 @@ def test_main_leaves_a_held_row_in_the_queue(isolated_apply, workbook):
     assert [r["queue_id"] for r in intake_queue.load_queue()] == ["q9001"]
 
 
+# --- New feature: the owner must be told, in the run's own output, which
+# accepted rows went in with Claude's draft untouched - not refused, since a
+# draft may be correct as it stands, but never silent either. ---
+
+def test_main_reports_a_row_that_kept_the_draft_verbatim(isolated_apply, workbook, capsys):
+    row = sheet_row(description_draft="Bamboo socks with a hammerhead motif.")
+    intake_queue.save_queue([row])
+    path = workbook([row], ["ACCEPT"], ["Bamboo socks with a hammerhead motif."])
+
+    intake_apply.main(path=path, rebuild=False)
+
+    assert "q9001 kept the drafted description verbatim" in capsys.readouterr().out
+
+
+def test_main_says_nothing_once_the_draft_has_been_edited(isolated_apply, workbook, capsys):
+    row = sheet_row(description_draft="Bamboo socks with a hammerhead motif.")
+    intake_queue.save_queue([row])
+    path = workbook([row], ["ACCEPT"],
+                    ["Bamboo socks, hand-knitted, with a hammerhead motif."])
+
+    intake_apply.main(path=path, rebuild=False)
+
+    assert "kept the drafted description verbatim" not in capsys.readouterr().out
+
+
+def test_main_says_nothing_when_there_was_never_a_draft(isolated_apply, workbook, capsys):
+    row = sheet_row(description_draft="")
+    intake_queue.save_queue([row])
+    path = workbook([row], ["ACCEPT"], ["Bamboo socks with a hammerhead motif."])
+
+    intake_apply.main(path=path, rebuild=False)
+
+    assert "kept the drafted description verbatim" not in capsys.readouterr().out
+
+
 def test_main_applies_nothing_when_any_row_fails_validation(isolated_apply, workbook):
     import entries
     rows = [sheet_row(), sheet_row(queue_id="q9002")]

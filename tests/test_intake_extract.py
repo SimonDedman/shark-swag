@@ -286,3 +286,71 @@ def test_guessed_price_does_not_prefer_a_struck_through_list_price():
     price, _source = intake_extract.extract_price(soup("guessed_price.html"),
                                                  "https://example.com/p")
     assert price != "$70"
+
+
+# --- extract_blurb: the page's own words about the product, tried in an
+# order that puts a shop's own structured summary ahead of Amazon's marketing
+# boilerplate meta description, so the drafting step has real facts to work
+# from rather than "Buy X ... FREE DELIVERY". ---
+
+def test_blurb_prefers_json_ld_description_over_everything_else():
+    text, source = intake_extract.extract_blurb(soup("blurb_jsonld.html"))
+    assert text == ("Organic cotton babygro printed with a scientifically "
+                     "accurate lemon shark, designed with Sharks4Kids.")
+    assert source == "json-ld"
+
+
+def test_blurb_falls_back_to_og_description():
+    text, source = intake_extract.extract_blurb(soup("blurb_og.html"))
+    assert text == ("Combed organic cotton tee, screen printed to order in a "
+                     "wind-powered UK factory.")
+    assert source == "og"
+
+
+def test_blurb_falls_back_to_amazon_feature_bullets_over_the_meta_description():
+    """Worked example from a real submission
+    (https://www.amazon.com/dp/B07MXKZJDP, cached in images/htmlcache/):
+    meta[name=description] is just the page title plus 'FREE DELIVERY', while
+    #feature-bullets carries the real facts - full grain leather, hand cut and
+    hand stitched by artisans in Pastores, Guatemala. This fixture's bullets
+    and meta tag are copied verbatim from that cached page."""
+    text, source = intake_extract.extract_blurb(soup("amazon_feature_bullets.html"))
+    assert source == "amazon"
+    assert "Full Grain Leather" in text
+    assert "Pastores, Guatemala" in text
+    assert "FREE DELIVERY" not in text
+
+
+def test_blurb_falls_back_to_shopify_product_description():
+    text, source = intake_extract.extract_blurb(soup("blurb_shopify.html"))
+    assert text == ("Screen printed by hand on peace silk, one metre square, "
+                     "the whale shark pattern taken from a photo-ID catalogue "
+                     "image.")
+    assert source == "shopify"
+
+
+def test_blurb_falls_back_to_an_itemprop_description():
+    text, source = intake_extract.extract_blurb(soup("blurb_itemprop.html"))
+    assert text == ("Bamboo and cotton crew socks, one size, with a "
+                     "hammerhead silhouette knitted into the sole.")
+    assert source == "shopify"
+
+
+def test_blurb_falls_back_to_meta_description_last():
+    text, source = intake_extract.extract_blurb(soup("blurb_meta_only.html"))
+    assert text == "A ceramic mug printed with a great white shark, dishwasher safe."
+    assert source == "meta"
+
+
+def test_blurb_is_empty_with_an_empty_source_when_the_page_has_nothing():
+    assert intake_extract.extract_blurb(soup("bare.html")) == ("", "")
+
+
+def test_blurb_is_capped_at_about_twelve_hundred_characters():
+    long_description = "Hand stitched shark plushie. " * 100
+    assert len(long_description) > intake_extract.MAX_BLURB_CHARS
+    html = f'<html><head><meta name="description" content="{long_description}"></head><body></body></html>'
+    from bs4 import BeautifulSoup as BS
+    text, source = intake_extract.extract_blurb(BS(html, "lxml"))
+    assert len(text) == intake_extract.MAX_BLURB_CHARS
+    assert source == "meta"

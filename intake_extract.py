@@ -67,6 +67,8 @@ class Facts:
     price: str = ""
     price_source: str = ""
     ngo_text: str = ""
+    blurb: str = ""
+    blurb_source: str = ""
     note: str = ""
     candidates: list = field(default_factory=list)
 
@@ -122,6 +124,55 @@ def extract_title(soup):
     if soup.title and soup.title.string:
         return _clean_amazon_title(soup.title.string.strip())
     return ""
+
+
+# A drafted description is one or two sentences fed to an LLM, not a full
+# page dump, so anything past this is trimmed rather than sent whole.
+MAX_BLURB_CHARS = 1200
+
+
+def extract_blurb(soup):
+    """Returns (text, source): the page's own words about the product, tried
+    in the order most likely to hold real, specific facts rather than
+    boilerplate.
+
+    Amazon's own meta description is marketing filler ("Buy X ... FREE
+    DELIVERY"), so #feature-bullets - which usually carries the actual
+    material, construction, and provenance facts - is tried well ahead of it.
+    JSON-LD and og:description are a shop stating its own summary in a
+    structured place and are tried first for the same reason extract_price
+    tries json-ld and shopify before a plain-text guess. meta[name=description]
+    is the last resort precisely because it is so often boilerplate.
+    """
+    for node in _jsonld(soup):
+        if node.get("@type") in ("Product", "Book") and node.get("description"):
+            text = str(node["description"]).strip()
+            if text:
+                return text[:MAX_BLURB_CHARS], "json-ld"
+
+    og = soup.find("meta", property="og:description")
+    if og and (og.get("content") or "").strip():
+        return og["content"].strip()[:MAX_BLURB_CHARS], "og"
+
+    bullets = soup.find(id="feature-bullets")
+    if bullets:
+        items = [li.get_text(" ", strip=True) for li in bullets.find_all("li")]
+        items = [i for i in items if i]
+        if items:
+            return "; ".join(items)[:MAX_BLURB_CHARS], "amazon"
+
+    shopify = soup.select_one(".product__description") or soup.find(
+        attrs={"itemprop": "description"})
+    if shopify:
+        text = shopify.get_text(" ", strip=True)
+        if text:
+            return text[:MAX_BLURB_CHARS], "shopify"
+
+    meta = soup.find("meta", attrs={"name": "description"})
+    if meta and (meta.get("content") or "").strip():
+        return meta["content"].strip()[:MAX_BLURB_CHARS], "meta"
+
+    return "", ""
 
 
 def _format_price(amount, currency):
@@ -422,6 +473,7 @@ def extract(url):
     facts.title = extract_title(soup)
     facts.price, facts.price_source = extract_price(soup, url)
     facts.ngo_text = extract_ngo(soup.get_text(" "))
+    facts.blurb, facts.blurb_source = extract_blurb(soup)
     try:
         facts.candidates, cnote = harvest.harvest(url)
         facts.note = f"{note}; images: {cnote} ({len(facts.candidates)} candidate(s))"[:400]

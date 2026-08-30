@@ -22,6 +22,7 @@ from pathlib import Path
 from imapclient import IMAPClient
 
 import intake_classify
+import intake_draft
 import intake_extract
 import intake_parse
 import intake_queue
@@ -146,8 +147,9 @@ def process_message(raw, dry_run=False):
             sender=submission.sender, note=submission.note, url="", url_norm="",
             fetch_status="NO_URL", http=None,
             fetch_note="the message carried no link", title=submission.subject,
-            price="", price_source="", ngo_text="", section="", sub="", age="",
-            keyword="", duplicate_of="", candidates=[], picked="")
+            price="", price_source="", ngo_text="", blurb="", blurb_source="",
+            section="", sub="", age="", keyword="", duplicate_of="",
+            candidates=[], picked="", description_draft="", draft_note="")
         rows.append(row if dry_run else intake_queue.add_row(row, path=QUEUE))
     else:
         for url in submission.urls:
@@ -156,6 +158,11 @@ def process_message(raw, dry_run=False):
             row = intake_queue.new_row(submission, url, facts, guess)
             row["duplicate_of"] = intake_queue.duplicate_of(
                 row["url_norm"], queue_path=QUEUE, rejected_path=REJECTED)
+            if row["fetch_status"] in intake_draft.UNDRAFTABLE_STATUSES or not row.get("blurb"):
+                row["description_draft"], row["draft_note"] = "", ""
+            else:
+                row["description_draft"], row["draft_note"] = \
+                    intake_draft.draft_description(row)
             rows.append(row if dry_run else intake_queue.add_row(row, path=QUEUE))
 
     if not dry_run:

@@ -222,9 +222,13 @@ def main(path=None, rebuild=True):
     all_picks = picks_mod.load_picks()
 
     accepted, rejected, held = [], [], []
+    verbatim_drafts = []
     for row in rows:
         qid = row.get("Queue id") or ""
         if row["Status"] == "ACCEPT":
+            draft = str((queue.get(qid) or {}).get("description_draft", ""))
+            if draft and str(row.get("Description", "")) == draft:
+                verbatim_drafts.append(qid)
             entry_id = apply_row(row, data)
             specs = _picked_specs(row, queue.get(qid))
             all_picks[entry_id] = dict(specs=specs, note=f"from intake {qid}")
@@ -249,6 +253,8 @@ def main(path=None, rebuild=True):
     print(f"{len(accepted)} accepted, {len(rejected)} rejected, {len(held)} held")
     for qid, entry_id in accepted:
         print(f"   {qid} -> {entry_id}")
+    for qid in verbatim_drafts:
+        print(f"{qid} kept the drafted description verbatim")
 
     if rebuild and accepted:
         subprocess.run([VENV_PYTHON, str(ROOT / "build_docx.py")], check=True)

@@ -155,6 +155,8 @@ def new_row(submission, url, facts, guess):
         price=facts.price,
         price_source=facts.price_source,
         ngo_text=facts.ngo_text,
+        blurb=facts.blurb,
+        blurb_source=facts.blurb_source,
         section=guess.section,
         sub=guess.sub,
         age=guess.age,

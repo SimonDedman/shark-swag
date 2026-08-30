@@ -58,6 +58,55 @@ def test_a_duplicate_link_is_flagged_not_dropped(isolated, monkeypatch):
         "the lemon shark onesie is already entry e01"
 
 
+# --- New feature: a Claude-drafted Description, but only where there is
+# page text to ground it in; the row must never call the drafter otherwise. ---
+
+def test_a_row_with_a_blurb_gets_the_drafted_description(isolated, monkeypatch):
+    def fake_extract(url):
+        return Facts(url=url, status="OK", http=200, title="Shark socks",
+                     price="~£12.50", price_source="itemprop", ngo_text="",
+                     blurb="Bamboo socks with a shark motif.", blurb_source="meta",
+                     note="fetched", candidates=[])
+    monkeypatch.setattr(intake_watch.intake_extract, "extract", fake_extract)
+    monkeypatch.setattr(intake_watch.intake_draft, "draft_description",
+                        lambda row: ("Bamboo socks printed with a shark.", "drafted from meta"))
+    rows = intake_watch.process_message((MAIL / "bare_url.eml").read_bytes())
+    assert rows[0]["description_draft"] == "Bamboo socks printed with a shark."
+    assert rows[0]["draft_note"] == "drafted from meta"
+
+
+def test_a_row_with_no_blurb_never_calls_the_drafter(isolated, monkeypatch):
+    """The isolated fixture's own fake_extract() (blurb="") is in effect
+    here, standing in for the ordinary case where nothing to ground a draft
+    in was found."""
+    def boom(row):
+        raise AssertionError("should not draft without a blurb")
+    monkeypatch.setattr(intake_watch.intake_draft, "draft_description", boom)
+    rows = intake_watch.process_message((MAIL / "bare_url.eml").read_bytes())
+    assert rows[0]["description_draft"] == ""
+    assert rows[0]["draft_note"] == ""
+
+
+def test_a_blocked_fetch_never_calls_the_drafter_even_with_a_blurb(isolated, monkeypatch):
+    def fake_extract(url):
+        return Facts(url=url, status="BLOCKED", http=403, title="", price="",
+                     price_source="", ngo_text="", blurb="something on a cached page",
+                     blurb_source="meta", note="blocked", candidates=[])
+    monkeypatch.setattr(intake_watch.intake_extract, "extract", fake_extract)
+
+    def boom(row):
+        raise AssertionError("should not draft from a blocked fetch")
+    monkeypatch.setattr(intake_watch.intake_draft, "draft_description", boom)
+    rows = intake_watch.process_message((MAIL / "bare_url.eml").read_bytes())
+    assert rows[0]["description_draft"] == ""
+
+
+def test_a_message_with_no_url_carries_blank_draft_fields(isolated):
+    rows = intake_watch.process_message((MAIL / "no_url.eml").read_bytes())
+    assert rows[0]["description_draft"] == ""
+    assert rows[0]["draft_note"] == ""
+
+
 def test_the_note_and_sender_reach_the_row(isolated):
     rows = intake_watch.process_message((MAIL / "link_plus_note.eml").read_bytes())
     assert rows[0]["sender"] == "Simon Dedman"

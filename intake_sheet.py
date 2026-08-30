@@ -40,7 +40,7 @@ COLUMNS = [
     ("Age", 14, "age", True),
     ("Link", 34, "url", True),
     ("Approx. price", 13, "price", True),
-    ("Description", 52, None, True),
+    ("Description", 52, "description_draft", True),
     ("Suggested by", 18, "sender", True),
     ("NGO?", 10, None, True),
     ("NGO / proceeds to conservation?", 40, "ngo_text", True),
@@ -55,6 +55,8 @@ COLUMNS = [
     ("Fetch note", 46, "fetch_note", False),
     ("HTTP", 7, "http", False),
     ("Queue id", 10, "queue_id", False),
+    ("Page blurb", 46, "blurb", False),
+    ("Description source", 15, None, False),
 ]
 
 EVIDENCE_FILL = PatternFill("solid", fgColor="F2F2F2")
@@ -341,8 +343,16 @@ def _info(ws, rows):
          "sheet cell can be told apart from one that was never filled.", False),
         ("2. Check Duplicate of. An eNN value means this item is already in the "
          "document; a qNNNN value means it is already elsewhere in this sheet.", False),
-        ("3. Fill in Description. This is the only field with no scraped source, and "
-         "an accepted row will be refused without it.", False),
+        ("3. Fill in Description, or correct the one already there. Where the page "
+         "carried enough text to work from, Description is pre-filled with Claude's "
+         "own attempt at it, drafted from the seller's page text and nothing else; "
+         "it is unreviewed until you edit it. Description source shows 'drafted' for "
+         "any row still holding that draft untouched, and Page blurb shows the page "
+         "text it was drafted from, so you can check the draft against its source. A "
+         "blank Description means either nothing was drafted (no usable page text) "
+         "or the draft was judged too thin to be worth writing at all - either way, "
+         "it is the only field with no scraped source, and an accepted row will be "
+         "refused without it.", False),
         ("4. Correct Section, Subsection, Item, Age, and Approx. price where the "
          "guess is wrong. Section keyword shows which rule produced the guess. "
          "Subsection must be one of the names already used in that section of the "
@@ -600,6 +610,13 @@ def write_workbook(rows, path):
                 value = section_label(row.get(key, ""))
             elif header == "NGO?":
                 value = guess_ngo_flag(row.get("ngo_text", ""))
+            elif header == "Description source":
+                # Computed here, not read off the row: "drafted" means the
+                # Description cell just above still holds the draft verbatim,
+                # since that is exactly what was written into it a few lines
+                # up in this same loop. A blank draft means there was nothing
+                # to pre-fill, so the cell is the owner's own blank slate.
+                value = "drafted" if str(row.get("description_draft") or "").strip() else ""
             else:
                 value = row.get(key, "") if key else ""
             cell = ws.cell(row=r, column=i, value=value)
@@ -614,7 +631,8 @@ def write_workbook(rows, path):
                 cell.hyperlink = Hyperlink(ref=cell.coordinate,
                                            target=sheet_path.as_uri())
                 cell.font = HYPERLINK_FONT
-            if header in ("Description", "NGO / proceeds to conservation?", "Their note"):
+            if header in ("Description", "NGO / proceeds to conservation?", "Their note",
+                          "Page blurb"):
                 cell.alignment = Alignment(wrap_text=True, vertical="top")
 
     ws.freeze_panes = "A2"

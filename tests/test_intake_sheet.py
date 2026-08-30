@@ -467,6 +467,73 @@ def test_ngo_flag_column_sits_immediately_before_the_ngo_text_column():
     assert headers[i + 1] == "NGO / proceeds to conservation?"
 
 
+# --- New feature: a Claude-drafted Description pre-fills the editable cell,
+# and Description source / Page blurb are honest evidence columns about it. ---
+
+DRAFTED = dict(ROW, queue_id="q9003",
+              blurb="Bamboo and cotton crew socks with a hammerhead silhouette "
+                    "knitted into the sole.",
+              blurb_source="shopify",
+              description_draft="Bamboo and cotton socks with a hammerhead "
+                                "silhouette knitted into the sole.",
+              draft_note="drafted from shopify")
+
+
+def test_the_description_cell_is_prefilled_with_the_draft(tmp_path):
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([DRAFTED], path)
+    ws = openpyxl.load_workbook(path)["Review"]
+    headers = [c.value for c in ws[1]]
+    value = ws.cell(row=2, column=headers.index("Description") + 1).value
+    assert value == DRAFTED["description_draft"]
+
+
+def test_description_source_says_drafted_when_the_draft_is_still_there(tmp_path):
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([DRAFTED], path)
+    ws = openpyxl.load_workbook(path)["Review"]
+    headers = [c.value for c in ws[1]]
+    assert "Description source" in headers
+    value = ws.cell(row=2, column=headers.index("Description source") + 1).value
+    assert value == "drafted"
+
+
+def test_description_source_is_blank_when_there_is_no_draft(tmp_path):
+    row = dict(ROW, description_draft="")
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([row], path)
+    ws = openpyxl.load_workbook(path)["Review"]
+    headers = [c.value for c in ws[1]]
+    value = ws.cell(row=2, column=headers.index("Description source") + 1).value
+    assert value in (None, "")
+
+
+def test_page_blurb_column_carries_the_scraped_text(tmp_path):
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([DRAFTED], path)
+    ws = openpyxl.load_workbook(path)["Review"]
+    headers = [c.value for c in ws[1]]
+    assert "Page blurb" in headers
+    value = ws.cell(row=2, column=headers.index("Page blurb") + 1).value
+    assert value == DRAFTED["blurb"]
+
+
+def test_page_blurb_column_is_hidden_when_every_row_has_none(tmp_path):
+    row = dict(ROW, blurb="")
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook([row], path)
+    ws = openpyxl.load_workbook(path)["Review"]
+    headers = [c.value for c in ws[1]]
+    col = get_column_letter(headers.index("Page blurb") + 1)
+    assert ws.column_dimensions[col].hidden is True
+
+
+def test_info_tab_explains_the_drafted_description(book):
+    text = " ".join(str(c.value) for r in book["Info"].iter_rows() for c in r if c.value)
+    assert "claude" in text.lower() or "drafted" in text.lower()
+    assert "Page blurb" in text
+
+
 def test_compound_age_values_already_in_the_document_are_in_the_age_list():
     """An existing value such as 'Kids / Youth / Adult' must never fail its
     own dropdown."""
