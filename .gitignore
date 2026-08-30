@@ -25,3 +25,6 @@ intake/*.corrupt-*
 
 # Chosen product images: third-party retailer photos, kept local for now
 images/final/
+
+# LibreOffice lock files, present while a workbook is open
+.~lock.*#
