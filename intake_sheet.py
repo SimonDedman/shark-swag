@@ -64,18 +64,6 @@ EVIDENCE_FILL = PatternFill("solid", fgColor="F2F2F2")
 HYPERLINK_FONT = Font(color="0563C1", underline="single")
 CELL, HDR, COLS = 190, 30, 12
 
-# The INDIRECT()-based per-section Subsection dropdown is built and correct
-# - the named ranges it depends on are right (sub_5 -> Lists!$I$2:$I$3,
-# holding Kids and Youth) - but Simon confirmed LibreOffice renders it as an
-# empty dropdown on his machine regardless. False falls back to one flat
-# list of every subsection name across every section, with no filtering by
-# Section. Either way, intake_apply.validate() still refuses a subsection
-# that does not belong to the chosen section and names the valid ones, so a
-# dropdown that fails to appear costs typing, never a bad write. Only worth
-# flipping back to True if this workbook is ever opened in Excel instead of
-# LibreOffice.
-DEPENDENT_SUBSECTION_DROPDOWN = False
-
 STATUS_OPTIONS = ["ACCEPT", "REJECT", "HOLD"]
 NGO_OPTIONS = ["Yes", "No", "Not stated"]
 
@@ -362,8 +350,11 @@ def _info(ws, rows):
          "Status, Section, Subsection, Age, and NGO? are all offered as dropdowns, "
          "so the valid options are on screen rather than recalled from memory; the "
          "Lists tab shows every option in full, including all of them by section for "
-         "Subsection. Subsection's dropdown is filtered to whichever Section is "
-         "already chosen on that row where LibreOffice supports it.", False),
+         "Subsection. Subsection's dropdown already shows only the names that belong "
+         "to whichever Section this row is currently in; a row with no Section "
+         "guessed offers every name instead. Changing Section does not move the "
+         "Subsection list to match, so if the two disagree, intake_apply.py will "
+         "refuse the row and print the valid names.", False),
         ("5. Open the contact sheet linked in the Contact sheet column and put the "
          "index of the image you want in Image pick. The sheet shows the twelve "
          "best-ranked candidates, numbered from zero, and only those indices can be "
@@ -406,11 +397,13 @@ def build_lists_sheet(wb):
     """A visible Lists tab, readable as a reference in its own right: one
     bold-headed column per controlled vocabulary, plus one column per section
     holding that section's subsections, plus a flat column of every
-    subsection across every section for the non-dependent fallback.
+    subsection across every section as the fallback for a row with no
+    section to filter by.
 
-    Also defines the sub_<N> named ranges the dependent Subsection dropdown
-    resolves through INDIRECT(). Returns {vocabulary_name: (column, count)},
-    used to build the Review tab's data validation ranges.
+    Also defines the sub_<N> named ranges each row's own per-section
+    Subsection validation points at directly (see
+    _attach_subsection_dropdowns). Returns {vocabulary_name: (column,
+    count)}, used to build the Review tab's data validation ranges.
     """
     ws = wb.create_sheet("Lists")
     ranges = {}
@@ -479,9 +472,77 @@ def _add_dropdown(ws, col_index, formula1, title, prompt, error, n_rows):
     return dv
 
 
-def _attach_dropdowns(ws, ranges, n_rows):
-    """Data validation on the five controlled Review columns, each pointing
-    at a range on the Lists tab rather than an inline list."""
+SUBSECTION_PROMPT_KNOWN = (
+    "These are the subsections for the section this row is currently in. If "
+    "you change Section, this list will not follow it: intake_apply.py will "
+    "refuse the mismatch and print the valid names."
+)
+
+SUBSECTION_PROMPT_FALLBACK = (
+    "This row has no Section chosen yet (a blank guess means no rule fired), "
+    "so every subsection across every section is offered here rather than a "
+    "filtered list. Once Section is set, rebuild this workbook to get a list "
+    "filtered to just that section; either way, intake_apply.py refuses a "
+    "mismatched Section/Subsection pair and prints the valid names."
+)
+
+SUBSECTION_ERROR = ("This is not one of the subsection names intake_apply.py "
+                     "recognises for the chosen section.")
+
+
+def _attach_subsection_dropdowns(ws, col_index, ranges, rows, n_rows):
+    """One DataValidation per distinct Section actually present among the
+    rows, each pointing straight at that section's own sub_<N> named range
+    on the Lists tab, plus one further validation - the flat "All
+    subsections" range - for whichever rows have no Section to filter by:
+    a blank guess (no classifier rule fired), an unrecognised hand-typed
+    number, and every row past the last one with data, none of which has a
+    per-row Section to key off. Grouped rather than per-row, so a workbook
+    with rows across four sections carries four Subsection validations, not
+    one per row.
+
+    No INDIRECT() anywhere: LibreOffice renders that as an empty dropdown,
+    but a plain named-range formula1 is exactly what a single-section
+    validation already needs, so there is nothing left for it to fail to
+    evaluate.
+    """
+    letter = get_column_letter(col_index)
+    known_sections = {number for number, _label in section_choices()}
+    fallback_formula = _list_range_formula(*ranges["All subsections"])
+
+    by_section = {}
+    for i, row in enumerate(rows, start=2):
+        number = str(row.get("section", "")).strip()
+        by_section.setdefault(number if number in known_sections else "", []).append(i)
+
+    for number, row_numbers in sorted(by_section.items()):
+        if not number:
+            continue
+        dv = DataValidation(type="list", formula1=f"sub_{number}", allow_blank=True,
+                            showErrorMessage=True, showInputMessage=True,
+                            errorTitle="Not a valid option", error=SUBSECTION_ERROR,
+                            promptTitle="Subsection", prompt=SUBSECTION_PROMPT_KNOWN)
+        for r in row_numbers:
+            dv.add(f"{letter}{r}")
+        ws.add_data_validation(dv)
+
+    dv = DataValidation(type="list", formula1=fallback_formula, allow_blank=True,
+                        showErrorMessage=True, showInputMessage=True,
+                        errorTitle="Not a valid option", error=SUBSECTION_ERROR,
+                        promptTitle="Subsection", prompt=SUBSECTION_PROMPT_FALLBACK)
+    for r in by_section.get("", []):
+        dv.add(f"{letter}{r}")
+    end_row = max(n_rows + 1, 2) + VALIDATION_ROW_MARGIN
+    trailing_start = n_rows + 2
+    if trailing_start <= end_row:
+        dv.add(f"{letter}{trailing_start}:{letter}{end_row}")
+    ws.add_data_validation(dv)
+
+
+def _attach_dropdowns(ws, ranges, rows):
+    """Data validation on the controlled Review columns, each pointing at a
+    range on the Lists tab rather than an inline list."""
+    n_rows = len(rows)
     col_index = {header: i for i, (header, _w, _k, _e) in enumerate(COLUMNS, 1)}
 
     _add_dropdown(
@@ -497,21 +558,7 @@ def _attach_dropdowns(ws, ranges, n_rows):
         "the Lists tab.",
         "Choose one of the sections listed on the Lists tab.", n_rows)
 
-    section_letter = get_column_letter(col_index["Section"])
-    if DEPENDENT_SUBSECTION_DROPDOWN:
-        sub_formula = (f'INDIRECT("sub_"&LEFT(${section_letter}2&".",'
-                       f'FIND(".",${section_letter}2&".")-1))')
-    else:
-        sub_formula = _list_range_formula(*ranges["All subsections"])
-    _add_dropdown(
-        ws, col_index["Subsection"], sub_formula, "Subsection",
-        "Pick a subsection belonging to the chosen Section. If this list does "
-        "not filter itself by Section in your copy of LibreOffice, see the "
-        "Lists tab for every subsection grouped by section: intake_apply.py "
-        "still refuses a mismatched pair and names the valid options, so a "
-        "dropdown that fails to appear costs typing, never a bad entry.",
-        "This is not one of the subsection names intake_apply.py recognises "
-        "for the chosen section.", n_rows)
+    _attach_subsection_dropdowns(ws, col_index["Subsection"], ranges, rows, n_rows)
 
     _add_dropdown(
         ws, col_index["Age"], _list_range_formula(*ranges["Age"]), "Age",
@@ -582,7 +629,7 @@ def write_workbook(rows, path):
             ws.column_dimensions[get_column_letter(i)].hidden = True
 
     ranges = build_lists_sheet(wb)
-    _attach_dropdowns(ws, ranges, len(rows))
+    _attach_dropdowns(ws, ranges, rows)
 
     build_images_sheet(wb, rows)
 

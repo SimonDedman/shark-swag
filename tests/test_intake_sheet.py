@@ -373,6 +373,30 @@ def _dv_for_column(ws, headers, header):
     return None
 
 
+def _dvs_for_column(ws, headers, header):
+    """Every DataValidation touching one column, in the order they were
+    added. Subsection carries more than one - one per distinct Section in
+    the rows, plus the all-subsections fallback - so a test that wants all
+    of them cannot use _dv_for_column, which only ever returns the first."""
+    letter = get_column_letter(headers.index(header) + 1)
+    found = []
+    for dv in ws.data_validations.dataValidation:
+        for cell_range in dv.sqref.ranges:
+            if get_column_letter(cell_range.min_col) == letter:
+                found.append(dv)
+                break
+    return found
+
+
+def _rows_of(dv):
+    """Every worksheet row number a DataValidation's sqref covers, across
+    all of its (possibly discontiguous) ranges."""
+    rows = set()
+    for cell_range in dv.sqref.ranges:
+        rows.update(range(cell_range.min_row, cell_range.max_row + 1))
+    return rows
+
+
 def test_lists_tab_exists_ordered_after_info_and_review(book):
     assert book.sheetnames == ["Info", "Review", "Lists", "Images"]
 
@@ -484,24 +508,6 @@ def test_age_dropdown_points_at_a_lists_range_sized_to_the_distinct_ages(book):
     assert dv.formula1 == f"Lists!$D$2:$D${n + 1}"
 
 
-def test_subsection_dropdown_uses_the_flat_list_by_default(book):
-    """LibreOffice does not honour the INDIRECT()-based per-section
-    filtering, even though the named ranges it depends on are correct (e.g.
-    sub_5 -> Lists!$I$2:$I$3, holding Kids and Youth) - confirmed on Simon's
-    machine. So the default is the flat "All subsections" list, unfiltered
-    by Section."""
-    assert intake_sheet.DEPENDENT_SUBSECTION_DROPDOWN is False
-    ws = book["Review"]
-    headers = [c.value for c in ws[1]]
-    dv = _dv_for_column(ws, headers, "Subsection")
-    assert "INDIRECT" not in dv.formula1
-
-    lst = book["Lists"]
-    col = next(c.column for c in lst[1] if c.value == "All subsections")
-    letter = get_column_letter(col)
-    assert dv.formula1.startswith(f"Lists!${letter}$2:${letter}$")
-
-
 def test_named_ranges_exist_for_every_section(tmp_path):
     path = tmp_path / "review.xlsx"
     intake_sheet.write_workbook([ROW], path)
@@ -512,22 +518,117 @@ def test_named_ranges_exist_for_every_section(tmp_path):
         assert wb.defined_names[name].attr_text.startswith("Lists!$")
 
 
-def test_subsection_dropdown_can_still_use_indirect_when_explicitly_enabled(
-        tmp_path, monkeypatch):
-    """DEPENDENT_SUBSECTION_DROPDOWN = True is the mechanism, kept working
-    even though it is not the default: it is built and correct, and only
-    worth trying again if the workbook is ever opened in Excel rather than
-    LibreOffice."""
-    monkeypatch.setattr(intake_sheet, "DEPENDENT_SUBSECTION_DROPDOWN", True)
+# --- Per-row Subsection validation: LibreOffice does not honour the
+# INDIRECT()-based per-section filtering (confirmed on Simon's machine, even
+# though the named ranges it depends on - sub_5 -> Lists!$I$2:$I$3, holding
+# Kids and Youth - are correct), and a flat list of all 23 names across every
+# section is more annoying than useful when a row's own section only has two
+# to five. So each row's Subsection cell gets a validation scoped to
+# whichever Section that row is actually in, grouped one DataValidation per
+# distinct section rather than one per row. ---
+
+def test_subsection_dropdown_is_split_one_validation_per_distinct_section(tmp_path):
+    """A workbook whose rows span three sections carries three Subsection
+    validations, each pointing at that section's own sub_<N> named range and
+    each covering exactly the rows actually in that section."""
+    rows = [dict(ROW, queue_id="q1", section="1"),
+            dict(ROW, queue_id="q2", section="2"),
+            dict(ROW, queue_id="q3", section="1"),
+            dict(ROW, queue_id="q4", section="5")]
     path = tmp_path / "review.xlsx"
-    intake_sheet.write_workbook([ROW], path)
+    intake_sheet.write_workbook(rows, path)
+    ws = openpyxl.load_workbook(path)["Review"]
+    headers = [c.value for c in ws[1]]
+
+    dvs = _dvs_for_column(ws, headers, "Subsection")
+    by_formula = {dv.formula1: dv for dv in dvs}
+    assert by_formula.keys() >= {"sub_1", "sub_2", "sub_5"}
+    for name in ("sub_1", "sub_2", "sub_5"):
+        assert "INDIRECT" not in name
+
+    # rows 2 and 4 (q1, q3) are section 1; row 3 (q2) is section 2; row 5
+    # (q4) is section 5.
+    assert _rows_of(by_formula["sub_1"]) & {2, 3, 4, 5} == {2, 4}
+    assert _rows_of(by_formula["sub_2"]) & {2, 3, 4, 5} == {3}
+    assert _rows_of(by_formula["sub_5"]) & {2, 3, 4, 5} == {5}
+
+    # Exactly one validation per distinct section among the data rows, plus
+    # the all-subsections fallback for the trailing rows below the data:
+    # four data rows across three sections must not carry four validations.
+    non_fallback = [dv for dv in dvs if dv.formula1 != _list_range_formula_from(ws.parent)]
+    assert len({dv.formula1 for dv in non_fallback}) == 3
+
+
+def _list_range_formula_from(wb):
+    lst = wb["Lists"]
+    col = next(c.column for c in lst[1] if c.value == "All subsections")
+    letter = get_column_letter(col)
+    n = 0
+    r = 2
+    while lst.cell(row=r, column=col).value not in (None, ""):
+        n += 1
+        r += 1
+    return f"Lists!${letter}$2:${letter}${max(n + 1, 2)}"
+
+
+def test_a_blank_section_row_gets_the_all_subsections_fallback(book):
+    """BLOCKED's Section is blank (never guessed), so its Subsection cell
+    must get the flat, honest fallback rather than being filtered by a
+    section it was never assigned to."""
+    ws = book["Review"]
+    headers = [c.value for c in ws[1]]
+    fallback_formula = _list_range_formula_from(book)
+
+    dvs = _dvs_for_column(ws, headers, "Subsection")
+    assert len(dvs) > 1  # ROW (section 1) and BLOCKED (blank) must differ
+    fallback = [dv for dv in dvs if dv.formula1 == fallback_formula]
+    assert len(fallback) == 1
+    assert 3 in _rows_of(fallback[0])  # BLOCKED is row 3
+    assert 2 not in _rows_of(fallback[0])  # ROW's own row is filtered, not swept in
+    assert "INDIRECT" not in fallback[0].formula1
+
+
+def test_a_blank_section_subsection_prompt_explains_why(book):
+    ws = book["Review"]
+    headers = [c.value for c in ws[1]]
+    fallback_formula = _list_range_formula_from(book)
+    dv = next(dv for dv in _dvs_for_column(ws, headers, "Subsection")
+              if dv.formula1 == fallback_formula and 3 in _rows_of(dv))
+    assert "blank" in dv.prompt.lower()
+
+
+def test_a_known_section_subsection_prompt_names_the_situation(book):
+    """ROW is section 1, so its Subsection prompt must say these are that
+    section's own subsections, and that changing Section will not move the
+    list, and that intake_apply.py refuses the mismatch."""
+    ws = book["Review"]
+    headers = [c.value for c in ws[1]]
+    dv = next(dv for dv in _dvs_for_column(ws, headers, "Subsection")
+              if dv.formula1 == "sub_1")
+    assert "section" in dv.prompt.lower()
+    assert "intake_apply.py" in dv.prompt
+    assert "change" in dv.prompt.lower() or "changed" in dv.prompt.lower()
+
+
+def test_trailing_rows_beyond_the_data_get_the_all_subsections_fallback(tmp_path):
+    """Rows pasted in below the fetched ones have no Section to filter by,
+    so they must fall back to the flat list, the same way the other
+    dropdowns extend a margin past the last data row."""
+    rows = [dict(ROW, queue_id="q1", section="1")]
+    path = tmp_path / "review.xlsx"
+    intake_sheet.write_workbook(rows, path)
     wb = openpyxl.load_workbook(path)
     ws = wb["Review"]
     headers = [c.value for c in ws[1]]
-    dv = _dv_for_column(ws, headers, "Subsection")
-    section_letter = get_column_letter(headers.index("Section") + 1)
-    assert dv.formula1 == (f'INDIRECT("sub_"&LEFT(${section_letter}2&".",'
-                           f'FIND(".",${section_letter}2&".")-1))')
+    fallback_formula = _list_range_formula_from(wb)
+
+    fallback = next(dv for dv in _dvs_for_column(ws, headers, "Subsection")
+                     if dv.formula1 == fallback_formula)
+    trailing_row = 2 + intake_sheet.VALIDATION_ROW_MARGIN
+    assert trailing_row in _rows_of(fallback)
+    # row 2 is q1's own section-1 row, filtered instead - it must not also
+    # be swept into the fallback.
+    assert 2 not in _rows_of(fallback)
 
 
 def test_dropdown_arrow_is_shown_after_a_round_trip(book):
