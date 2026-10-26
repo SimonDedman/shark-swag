@@ -25,6 +25,8 @@ intake/*.corrupt-*
 
 # Chosen product images: third-party retailer photos, kept local for now
 images/final/
+# Source images supplied by hand (screenshots, catalogue scans), for F: specs
+images/local/
 
 # LibreOffice lock files, present while a workbook is open
 .~lock.*#

@@ -2,7 +2,8 @@
 """Render the chosen image per entry at the size the docx embeds.
 
 Specs live in images/picks.json, keyed by entry id: "P:<pool_key>" reuses a
-pool candidate, "U:<url>" is a source the pool missed, and an optional
+pool candidate, "U:<url>" is a source the pool missed, "F:<path>" is a local
+file relative to the project root (a screenshot or scan), and an optional
 "|crop=l,t,r,b" gives fractional crop bounds applied before the automatic
 padding trim. An empty spec list means the entry was looked at and has no
 usable image, which is not the same as an entry nobody has reached yet.
@@ -12,7 +13,7 @@ import sys
 
 from PIL import Image
 
-from paths import PICKS_JSON, POOL_JSON, FINAL
+from paths import PICKS_JSON, POOL_JSON, FINAL, ROOT
 from imgproc import download, load, autocrop, to_height, TARGET_H
 
 POOL = json.loads(POOL_JSON.read_text())
@@ -45,7 +46,11 @@ def render(entry_id, specs):
     written, failures = [], []
     for n, spec in enumerate(specs):
         url, referer, crop = resolve(spec)
-        p, note = download(url, referer=referer)
+        if spec.startswith("F:"):
+            p = ROOT / url
+            p, note = (p, "local") if p.exists() else (None, "missing local file")
+        else:
+            p, note = download(url, referer=referer)
         if p is None:
             failures.append((entry_id, n, note, url))
             continue

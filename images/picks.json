@@ -596,5 +596,11 @@
    "U:https://m.media-amazon.com/images/I/61WeTCSYyoL.jpg"
   ],
   "note": "from intake q0001"
+ },
+ "e90": {
+  "specs": [
+   "F:images/local/e90_smyths_catalogue.png|crop=0,0.04,1,1"
+  ],
+  "note": "Smyths printed catalogue, screenshot supplied by Simon 2026-10-26"
  }
 }
